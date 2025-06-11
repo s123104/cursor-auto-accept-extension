@@ -3,6 +3,62 @@
 > **原專案來源**：[true-yolo-cursor-auto-accept-full-agentic-mode](https://github.com/ivalsaraj/true-yolo-cursor-auto-accept-full-agentic-mode)  
 > **原作者**：[Valsaraj R (@ivalsaraj)](https://linkedin.com/in/ivalsaraj)
 
+## [VS Code 擴展版 1.0.1] - 2025-06-11
+
+### 🔧 品質改進與打包優化
+
+#### ✨ 新增功能
+
+- **📦 完整打包流程**
+
+  - 生成標準 VSIX 擴展包 (839.83 KB)
+  - 確保 @/icons 圖示正確顯示
+  - 包含所有必要資源檔案
+
+- **🛠️ 建置系統優化**
+  - TypeScript 編譯零錯誤
+  - 生產模式 bundle 優化至 35.57 KB
+  - esbuild 建置性能提升
+
+#### 🔍 品質檢查
+
+- ✅ **代碼品質**：ESLint 檢查通過 (僅 6 個警告)
+- ✅ **類型安全**：TypeScript 編譯無錯誤
+- ✅ **格式化**：Prettier 代碼格式檢查通過
+- ✅ **資源驗證**：確認圖示檔案 `icons/icon.png` 正確包含
+
+#### 📁 VSIX 包內容
+
+```
+cursor-auto-accept-extension-1.0.1.vsix (12 files, 839.83 KB)
+├─ [Content_Types].xml
+├─ extension.vsixmanifest
+└─ extension/
+   ├─ icons/icon.png [400.87 KB] ✓ 圖示正確包含
+   ├─ dist/extension.js [35.57 KB] ✓ 優化後的主程式
+   ├─ package.json [9.13 KB]
+   ├─ autoAccept.js [99.89 KB] ✓ 備用腳本
+   └─ [其他支援檔案]
+```
+
+#### 🚀 安裝方式
+
+```bash
+# 從 VSIX 檔案安裝
+code --install-extension cursor-auto-accept-extension-1.0.1.vsix
+
+# 或在 VS Code 中：Extensions > Install from VSIX
+```
+
+#### 📊 技術指標
+
+- Bundle 大小：35.57 KB (生產模式)
+- 建置時間：< 30ms
+- 檔案數量：12 files
+- 總包大小：839.83 KB
+
+---
+
 ## [VS Code 擴展版 1.0.0] - 2025-06-11
 
 ### 🚀 重大更新：VS Code 擴展化

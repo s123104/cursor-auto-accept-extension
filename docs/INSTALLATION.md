@@ -102,7 +102,7 @@ acceptStatus();
 globalThis.simpleAccept.showControlPanel();
 
 // 檢查可用命令
-console.log("可用命令: startAccept(), stopAccept(), showAnalytics()");
+console.log('可用命令: startAccept(), stopAccept(), showAnalytics()');
 ```
 
 ### 3. 功能測試
@@ -140,7 +140,7 @@ console.log("可用命令: startAccept(), stopAccept(), showAnalytics()");
 
 ```javascript
 // 僅啟用特定按鈕類型
-enableOnly(["accept", "run"]);
+enableOnly(['accept', 'run']);
 
 // 校準時間設定（手動工作流程需要 25 秒）
 calibrateWorkflow(25);

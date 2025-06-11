@@ -7,10 +7,11 @@
  */
 
 import * as assert from 'assert';
+import { describe, it } from 'mocha';
 import * as vscode from 'vscode';
 
-suite('Extension Test Suite', () => {
-  test('Extension should be present', () => {
+describe('Extension Test Suite', () => {
+  it('Extension should be present', () => {
     const extension = vscode.extensions.getExtension('s123104.cursor-auto-accept-extension');
     assert.ok(extension, '擴展應該存在');
   });

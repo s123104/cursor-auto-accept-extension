@@ -7,14 +7,15 @@
  */
 
 import * as assert from 'assert';
+import { describe, it, beforeEach, afterEach } from 'mocha';
 import * as vscode from 'vscode';
 import { AnalyticsManager } from '../../analytics';
 
-suite('Analytics Manager Test Suite', () => {
+describe('Analytics Manager Test Suite', () => {
   let analyticsManager: AnalyticsManager;
   let mockContext: vscode.ExtensionContext;
 
-  setup(() => {
+  beforeEach(() => {
     // 創建模擬的擴展上下文
     mockContext = {
       globalState: {
@@ -28,15 +29,15 @@ suite('Analytics Manager Test Suite', () => {
     analyticsManager = new AnalyticsManager(mockContext);
   });
 
-  teardown(() => {
+  afterEach(() => {
     analyticsManager.dispose();
   });
 
-  test('Analytics Manager should initialize', () => {
+  it('Analytics Manager should initialize', () => {
     assert.ok(analyticsManager, '分析管理器應該被創建');
   });
 
-  test('Should track file acceptance', () => {
+  it('Should track file acceptance', () => {
     const filename = 'test.ts';
     const buttonType = 'accept';
     const addedLines = 5;
@@ -54,7 +55,7 @@ suite('Analytics Manager Test Suite', () => {
     assert.strictEqual(fileData?.totalDeleted, deletedLines, '總刪除行數應該正確');
   });
 
-  test('Should export data correctly', () => {
+  it('Should export data correctly', () => {
     analyticsManager.trackFileAcceptance('test1.ts', 'accept', 3, 1);
     analyticsManager.trackFileAcceptance('test2.js', 'apply', 7, 0);
 
@@ -66,7 +67,7 @@ suite('Analytics Manager Test Suite', () => {
     assert.strictEqual(exportData.analytics.totalAccepts, 2, '匯出的總接受次數應該正確');
   });
 
-  test('Should clear all data', () => {
+  it('Should clear all data', () => {
     // 先添加一些資料
     analyticsManager.trackFileAcceptance('test.ts', 'accept', 5, 2);
 
@@ -81,7 +82,7 @@ suite('Analytics Manager Test Suite', () => {
     assert.strictEqual(analytics.files.size, 0, '清除後檔案清單應該為空');
   });
 
-  test('Should format time duration correctly', () => {
+  it('Should format time duration correctly', () => {
     const oneSecond = 1000;
     const oneMinute = 60 * 1000;
     const oneHour = 60 * 60 * 1000;
@@ -108,7 +109,7 @@ suite('Analytics Manager Test Suite', () => {
     );
   });
 
-  test('Should calculate time saved', () => {
+  it('Should calculate time saved', () => {
     const initialTimeSaved = analyticsManager.getAnalytics().roiTracking.totalTimeSaved;
 
     analyticsManager.trackFileAcceptance('test.ts', 'accept', 1, 0);
@@ -117,7 +118,7 @@ suite('Analytics Manager Test Suite', () => {
     assert.ok(finalTimeSaved > initialTimeSaved, '應該計算並累加節省的時間');
   });
 
-  test('Should handle multiple file acceptances for same file', () => {
+  it('Should handle multiple file acceptances for same file', () => {
     const filename = 'repeated.ts';
 
     analyticsManager.trackFileAcceptance(filename, 'accept', 3, 1);

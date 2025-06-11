@@ -160,14 +160,14 @@ globalThis.simpleAccept.hideControlPanel(); // 隱藏控制面板
 
 ```javascript
 // === 按鈕類型控制 ===
-enableOnly(["accept", "run"]); // 僅啟用指定類型
+enableOnly(['accept', 'run']); // 僅啟用指定類型
 enableAll(); // 啟用所有按鈕類型
 disableAll(); // 停用所有按鈕類型
 
 // === 個別按鈕控制 ===
-enableButton("accept"); // 啟用特定類型
-disableButton("execute"); // 停用特定類型
-toggleButton("resume"); // 切換特定類型
+enableButton('accept'); // 啟用特定類型
+disableButton('execute'); // 停用特定類型
+toggleButton('resume'); // 切換特定類型
 
 // === 支援的按鈕類型 ===
 // 'accept', 'acceptAll', 'run', 'runCommand', 'apply', 'execute', 'resume'
@@ -227,13 +227,13 @@ calibrateWorkflow(25, 100); // 自訂手動和自動時間（25秒, 100毫秒）
 
 ```javascript
 // 僅啟用安全操作（不包含執行命令）
-enableOnly(["accept", "acceptAll", "apply"]);
+enableOnly(['accept', 'acceptAll', 'apply']);
 
 // 僅啟用程式碼相關操作
-enableOnly(["accept", "acceptAll", "run", "runCommand"]);
+enableOnly(['accept', 'acceptAll', 'run', 'runCommand']);
 
 // 僅啟用會話管理
-enableOnly(["resume"]);
+enableOnly(['resume']);
 ```
 
 ### 時間和效率設定
@@ -394,7 +394,7 @@ debugAccept();
 acceptStatus();
 
 // 測試特定按鈕類型
-enableOnly(["accept"]);
+enableOnly(['accept']);
 debugAccept();
 ```
 
@@ -453,11 +453,11 @@ startAccept();
 
 ```javascript
 // 僅在安全操作時使用
-enableOnly(["accept", "acceptAll"]);
+enableOnly(['accept', 'acceptAll']);
 
 // 避免自動執行危險命令
-disableButton("run");
-disableButton("execute");
+disableButton('run');
+disableButton('execute');
 ```
 
 **3. 定期備份設定：**
@@ -476,7 +476,7 @@ exportAnalytics();
 
 ```javascript
 // 如果不使用某些功能，請停用
-disableButton("resume"); // 如果不需要自動繼續對話
+disableButton('resume'); // 如果不需要自動繼續對話
 ```
 
 **2. 適當的除錯設定：**
@@ -603,7 +603,7 @@ debugAccept();
 
 ```javascript
 // 減少啟用的按鈕類型
-enableOnly(["accept"]);
+enableOnly(['accept']);
 
 // 關閉除錯模式
 disableDebug();

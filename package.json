@@ -2,7 +2,7 @@
   "name": "cursor-auto-accept-extension",
   "displayName": "Cursor Auto Accept Extension",
   "description": "🚨 專為 Cursor 設計的自動接受程式碼建議擴展套件，包含檔案分析與 ROI 追蹤功能。注意：Cursor 更新可能導致功能失效",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "publisher": "s123104",
   "private": true,
   "license": "MIT",
@@ -31,6 +31,7 @@
     "ai-workflow",
     "code-assistant"
   ],
+  "icon": "icons/icon.png",
   "galleryBanner": {
     "color": "#1e1e1e",
     "theme": "dark"
@@ -48,7 +49,7 @@
         "icon": "$(zap)"
       },
       {
-        "command": "cursorAutoAccept.showPanel",
+        "command": "cursorAutoAccept.showControlPanel",
         "title": "顯示控制面板",
         "category": "Cursor Auto Accept",
         "icon": "$(dashboard)"
@@ -155,7 +156,7 @@
         "when": "editorTextFocus"
       },
       {
-        "command": "cursorAutoAccept.showPanel",
+        "command": "cursorAutoAccept.showControlPanel",
         "key": "ctrl+shift+p",
         "mac": "cmd+shift+p",
         "when": "editorTextFocus"
@@ -167,7 +168,7 @@
           "command": "cursorAutoAccept.toggle"
         },
         {
-          "command": "cursorAutoAccept.showPanel"
+          "command": "cursorAutoAccept.showControlPanel"
         },
         {
           "command": "cursorAutoAccept.showAnalytics"
@@ -180,6 +181,12 @@
         }
       ],
       "editor/title": [
+        {
+          "command": "cursorAutoAccept.showControlPanel",
+          "when": "resourceExtname == '.js' || resourceExtname == '.ts' || resourceExtname == '.jsx' || resourceExtname == '.tsx'",
+          "group": "navigation",
+          "title": "Cursor Auto Accept 控制面板"
+        },
         {
           "command": "cursorAutoAccept.toggle",
           "when": "resourceExtname == '.js' || resourceExtname == '.ts' || resourceExtname == '.jsx' || resourceExtname == '.tsx'",
@@ -204,7 +211,7 @@
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,md}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,md}\"",
     "test": "npm run test:unit && npm run test:integration",
-    "test:unit": "mocha --require tsx/cjs --timeout 10000 \"src/test/**/*.test.ts\"",
+    "test:unit": "mocha",
     "test:integration": "node ./out/test/runTest.js",
     "test:watch": "npm run test:unit -- --watch",
     "test:coverage": "c8 npm run test:unit",

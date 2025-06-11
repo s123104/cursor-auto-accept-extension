@@ -41,10 +41,13 @@ tsconfig.json
 # 日誌
 *.log
 
-# 文檔 (開發階段)
+# 文檔 (開發階段) 
 docs/**
 *.md
 !README.md
+
+# 保留重要資源
+!icons/**
 
 # 設定檔案
 .husky/**

@@ -1,6 +1,6 @@
 /**
  * 📦 模組：Cursor Auto Accept Extension 主要入口
- * 🕒 最後更新：2025-06-11T14:45:35+08:00
+ * 🕒 最後更新：2025-06-11T16:55:00+08:00
  * 🧑‍💻 作者/更新者：@s123104
  * 🔢 版本：v1.0.0
  * 📝 摘要：VS Code 擴展主要邏輯，管理自動接受功能和資料分析
@@ -26,9 +26,12 @@ export function activate(context: vscode.ExtensionContext) {
   });
 
   // 註冊命令：顯示控制面板
-  const showPanelCommand = vscode.commands.registerCommand('cursorAutoAccept.showPanel', () => {
-    webviewManager.showControlPanel();
-  });
+  const showControlPanelCommand = vscode.commands.registerCommand(
+    'cursorAutoAccept.showControlPanel',
+    () => {
+      webviewManager.showControlPanel();
+    }
+  );
 
   // 註冊命令：顯示分析報告
   const showAnalyticsCommand = vscode.commands.registerCommand(
@@ -90,7 +93,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   // 狀態列項目
   const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
-  statusBarItem.command = 'cursorAutoAccept.showPanel';
+  statusBarItem.command = 'cursorAutoAccept.showControlPanel';
   statusBarItem.text = '$(zap) Auto Accept';
   statusBarItem.tooltip = 'Cursor Auto Accept - 點擊開啟控制面板';
   statusBarItem.show();
@@ -104,7 +107,7 @@ export function activate(context: vscode.ExtensionContext) {
   // 添加到擴展上下文
   context.subscriptions.push(
     toggleCommand,
-    showPanelCommand,
+    showControlPanelCommand,
     showAnalyticsCommand,
     exportDataCommand,
     clearDataCommand,

@@ -17,7 +17,9 @@
     "*.vsix",
     "build/**",
     "scripts/**",
-    "src/test/**"
+    "src/test/**",
+    "autoAccept.js",
+    "autoAccept.*.js"
   ],
   "env": {
     "node": true,

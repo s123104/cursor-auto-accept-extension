@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>分析功能測試 - Cursor Auto Accept Enhanced</title>
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        background: #1e1e1e;
+        color: #ccc;
+        padding: 20px;
+        margin: 0;
+      }
+      .test-container {
+        max-width: 800px;
+        margin: 0 auto;
+        background: #2d2d2d;
+        padding: 20px;
+        border-radius: 8px;
+      }
+      .test-section {
+        margin-bottom: 20px;
+        padding: 15px;
+        background: #252525;
+        border-radius: 6px;
+      }
+      .test-section h3 {
+        margin-top: 0;
+        color: #fff;
+      }
+      button {
+        background: #4caf50;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 4px;
+        cursor: pointer;
+        margin: 4px;
+        font-size: 12px;
+      }
+      button:hover {
+        background: #45a049;
+      }
+      .simulate-btn {
+        background: #2196f3;
+      }
+      .simulate-btn:hover {
+        background: #1976d2;
+      }
+      .clear-btn {
+        background: #f44336;
+      }
+      .clear-btn:hover {
+        background: #da190b;
+      }
+      .status {
+        background: #333;
+        padding: 10px;
+        border-radius: 4px;
+        font-family: monospace;
+        font-size: 11px;
+      }
+      .fake-cursor-elements {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="test-container">
+      <h1>🧪 Cursor Auto Accept Enhanced 分析功能測試</h1>
+
+      <div class="test-section">
+        <h3>📊 基本控制</h3>
+        <button onclick="loadScript()">載入腳本</button>
+        <button onclick="CursorAutoAccept.analytics.show()">顯示分析頁面</button>
+        <button onclick="showStatus()">顯示狀態</button>
+      </div>
+
+      <div class="test-section">
+        <h3>🎯 模擬操作</h3>
+        <button class="simulate-btn" onclick="simulateFileAcceptance('test.js', 'accept', 10, 2)">
+          模擬接受 test.js
+        </button>
+        <button
+          class="simulate-btn"
+          onclick="simulateFileAcceptance('README.md', 'acceptAll', 25, 0)"
+        >
+          模擬全部接受 README.md
+        </button>
+        <button class="simulate-btn" onclick="simulateFileAcceptance('api.py', 'run', 15, 5)">
+          模擬執行 api.py
+        </button>
+        <button class="simulate-btn" onclick="simulateMultipleOperations()">模擬多個操作</button>
+      </div>
+
+      <div class="test-section">
+        <h3>📁 檔案測試</h3>
+        <button class="simulate-btn" onclick="addTestFiles()">添加測試檔案</button>
+        <button onclick="CursorAutoAccept.analytics.export()">匯出分析資料</button>
+        <button class="clear-btn" onclick="CursorAutoAccept.analytics.clear()">清除分析資料</button>
+      </div>
+
+      <div class="test-section">
+        <h3>📈 狀態顯示</h3>
+        <div id="status" class="status">等待載入腳本...</div>
+      </div>
+    </div>
+
+    <!-- 模擬 Cursor 的 DOM 結構 -->
+    <div class="fake-cursor-elements">
+      <div class="full-input-box"></div>
+      <div class="composer-code-block-container">
+        <div class="composer-code-block-filename">
+          <span style="direction: ltr">test.js</span>
+        </div>
+        <div class="composer-code-block-status">
+          <span style="color: green">+10</span>
+          <span style="color: red">-2</span>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      let scriptLoaded = false;
+
+      function loadScript() {
+        if (scriptLoaded) {
+          updateStatus('腳本已載入');
+          return;
+        }
+
+        const script = document.createElement('script');
+        script.src = './autoAccept.enhanced.js';
+        script.onload = () => {
+          scriptLoaded = true;
+          updateStatus('✅ Enhanced v2.0.1 腳本已載入');
+
+          // 等待腳本初始化
+          setTimeout(() => {
+            if (window.CursorAutoAccept) {
+              updateStatus('✅ CursorAutoAccept 已就緒，點擊"顯示分析頁面"查看功能');
+            }
+          }, 500);
+        };
+        script.onerror = () => {
+          updateStatus('❌ 腳本載入失敗');
+        };
+        document.head.appendChild(script);
+      }
+
+      function simulateFileAcceptance(filename, buttonType, addedLines, deletedLines) {
+        if (!window.CursorAutoAccept?.instance) {
+          updateStatus('❌ 請先載入腳本');
+          return;
+        }
+
+        // 模擬檔案接受
+        const fileInfo = {
+          filename: filename,
+          addedLines: addedLines,
+          deletedLines: deletedLines,
+          timestamp: new Date(),
+        };
+
+        const timeSaved = CursorAutoAccept.instance.roiTimer.calculateTimeSaved(buttonType);
+        CursorAutoAccept.instance.analytics.recordFileAcceptance(fileInfo, buttonType, timeSaved);
+        CursorAutoAccept.instance.totalClicks++;
+
+        updateStatus(`✅ 模擬 ${buttonType} 操作：${filename} (+${addedLines}/-${deletedLines})`);
+
+        // 更新UI
+        if (
+          CursorAutoAccept.instance.currentTab === 'analytics' ||
+          CursorAutoAccept.instance.currentTab === 'roi'
+        ) {
+          CursorAutoAccept.instance.updateAnalyticsContent();
+        }
+        CursorAutoAccept.instance.updateMainFooter();
+      }
+
+      function simulateMultipleOperations() {
+        const operations = [
+          { file: 'index.html', type: 'accept', add: 5, del: 1 },
+          { file: 'style.css', type: 'acceptAll', add: 20, del: 3 },
+          { file: 'script.js', type: 'run', add: 15, del: 2 },
+          { file: 'package.json', type: 'apply', add: 3, del: 0 },
+          { file: 'README.md', type: 'resume', add: 10, del: 0 },
+        ];
+
+        operations.forEach((op, index) => {
+          setTimeout(() => {
+            simulateFileAcceptance(op.file, op.type, op.add, op.del);
+          }, index * 200);
+        });
+
+        updateStatus('🔄 執行多個模擬操作...');
+      }
+
+      function addTestFiles() {
+        const testFiles = [
+          { file: 'components/Header.jsx', type: 'accept', add: 25, del: 5 },
+          { file: 'utils/helpers.js', type: 'run', add: 30, del: 10 },
+          { file: 'styles/main.scss', type: 'acceptAll', add: 40, del: 15 },
+          { file: 'config/database.js', type: 'apply', add: 8, del: 2 },
+        ];
+
+        testFiles.forEach((test, index) => {
+          setTimeout(() => {
+            simulateFileAcceptance(test.file, test.type, test.add, test.del);
+          }, index * 100);
+        });
+
+        updateStatus('📁 添加測試檔案資料...');
+      }
+
+      function showStatus() {
+        if (!window.CursorAutoAccept?.instance) {
+          updateStatus('❌ 請先載入腳本');
+          return;
+        }
+
+        const status = CursorAutoAccept.status();
+        const data = CursorAutoAccept.instance.analytics.exportData();
+
+        const statusText = `
+📊 狀態報告：
+- 執行狀態: ${status.isRunning ? '執行中' : '已停止'}
+- 總點擊數: ${status.totalClicks}
+- 總接受數: ${data.totalAccepts}
+- 已修改檔案: ${Object.keys(data.files).length}
+- 總節省時間: ${CursorAutoAccept.instance.formatTimeDuration(data.roiData.totalTimeSaved)}
+- 會話開始: ${new Date(data.sessionStart).toLocaleString()}
+            `.trim();
+
+        updateStatus(statusText);
+      }
+
+      function updateStatus(message) {
+        const statusEl = document.getElementById('status');
+        statusEl.textContent = message;
+      }
+
+      // 自動載入腳本
+      window.addEventListener('load', () => {
+        updateStatus('🚀 測試頁面已載入，點擊"載入腳本"開始測試');
+      });
+    </script>
+  </body>
+</html>

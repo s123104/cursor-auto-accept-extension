@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TrustedHTML 修正測試</title>
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="require-trusted-types-for 'script'; trusted-types default;"
+    />
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        background: #0d1117;
+        color: #e6edf3;
+        margin: 0;
+        padding: 20px;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      h1 {
+        color: #7c3aed;
+        text-align: center;
+      }
+
+      .test-section {
+        background: #161b22;
+        border: 1px solid #30363d;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+      }
+
+      .status {
+        padding: 10px;
+        border-radius: 6px;
+        margin: 10px 0;
+      }
+
+      .status.success {
+        background: #0d1117;
+        border: 1px solid #238636;
+        color: #3fb950;
+      }
+
+      .status.error {
+        background: #0d1117;
+        border: 1px solid #da3633;
+        color: #f85149;
+      }
+
+      button {
+        background: #238636;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 6px;
+        cursor: pointer;
+        margin: 5px;
+      }
+
+      .test-results {
+        background: #0d1117;
+        border: 1px solid #30363d;
+        border-radius: 6px;
+        padding: 15px;
+        font-family: monospace;
+        font-size: 13px;
+        max-height: 300px;
+        overflow-y: auto;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>🔐 TrustedHTML 修正測試</h1>
+
+      <div class="test-section">
+        <h3>測試控制</h3>
+        <button onclick="loadScript()">載入腳本</button>
+        <button onclick="testPanelCreation()">測試面板創建</button>
+        <button onclick="clearResults()">清除結果</button>
+
+        <div id="test-status" class="status" style="display: none"></div>
+
+        <h4>測試結果</h4>
+        <div id="test-results" class="test-results">等待測試開始...</div>
+      </div>
+    </div>
+
+    <script>
+      let testResults = [];
+
+      function logResult(message, type = 'info') {
+        const timestamp = new Date().toLocaleTimeString();
+        const logEntry = `[${timestamp}] ${message}`;
+        testResults.push(logEntry);
+
+        document.getElementById('test-results').textContent = testResults.join('\n');
+
+        const statusDiv = document.getElementById('test-status');
+        statusDiv.style.display = 'block';
+        statusDiv.className = `status ${type}`;
+        statusDiv.textContent = message;
+      }
+
+      function clearResults() {
+        testResults = [];
+        document.getElementById('test-results').textContent = '等待測試開始...';
+        document.getElementById('test-status').style.display = 'none';
+      }
+
+      function loadScript() {
+        try {
+          logResult('載入腳本中...', 'info');
+
+          const script = document.createElement('script');
+          script.src = './autoAccept.enhanced.js';
+          script.onload = () => {
+            logResult('腳本載入成功！', 'success');
+          };
+          script.onerror = error => {
+            logResult('腳本載入失敗', 'error');
+          };
+
+          document.head.appendChild(script);
+        } catch (error) {
+          logResult(`載入錯誤: ${error.message}`, 'error');
+        }
+      }
+
+      function testPanelCreation() {
+        try {
+          logResult('測試面板創建...', 'info');
+
+          if (!window.CursorAutoAccept || !window.CursorAutoAccept.instance) {
+            logResult('CursorAutoAccept 未找到，請先載入腳本', 'error');
+            return;
+          }
+
+          const instance = window.CursorAutoAccept.instance;
+
+          // 移除現有面板
+          const existingPanel = document.getElementById('cursor-auto-accept-v2-panel');
+          if (existingPanel) {
+            existingPanel.remove();
+            instance.controlPanel = null;
+          }
+
+          // 創建面板
+          instance.createControlPanel();
+
+          // 驗證
+          const panel = document.getElementById('cursor-auto-accept-v2-panel');
+          if (panel) {
+            logResult('控制面板創建成功！無 TrustedHTML 錯誤', 'success');
+          } else {
+            logResult('控制面板創建失敗', 'error');
+          }
+        } catch (error) {
+          logResult(`面板創建錯誤: ${error.message}`, 'error');
+        }
+      }
+
+      document.addEventListener('DOMContentLoaded', function () {
+        logResult('測試頁面已載入', 'success');
+      });
+    </script>
+  </body>
+</html>

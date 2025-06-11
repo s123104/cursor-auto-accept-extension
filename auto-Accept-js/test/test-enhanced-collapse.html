@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CursorAutoAccept Enhanced v2.0.1 - 收折功能測試</title>
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        margin: 20px;
+        background-color: #1e1e1e;
+        color: #ccc;
+      }
+      .test-section {
+        background: #2d2d2d;
+        padding: 20px;
+        margin: 20px 0;
+        border-radius: 8px;
+        border: 1px solid #444;
+      }
+      .test-button {
+        background: #0d7377;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        margin: 5px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 12px;
+      }
+      .test-button:hover {
+        background: #0a5d61;
+      }
+      .status {
+        background: #333;
+        padding: 10px;
+        border-radius: 4px;
+        margin: 10px 0;
+        font-family: monospace;
+        font-size: 12px;
+      }
+      .success {
+        color: #4caf50;
+      }
+      .warning {
+        color: #ff9800;
+      }
+      .error {
+        color: #f44336;
+      }
+      .info {
+        color: #2196f3;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>🧪 CursorAutoAccept Enhanced v2.0.1 測試</h1>
+
+    <div class="test-section">
+      <h2>📋 功能完整性檢查</h2>
+      <div class="status" id="functionality-status">檢查中...</div>
+      <button class="test-button" onclick="checkFunctionality()">檢查所有功能</button>
+    </div>
+
+    <div class="test-section">
+      <h2>🔄 收折功能測試</h2>
+      <div class="status" id="collapse-status">等待測試...</div>
+      <button class="test-button" onclick="testCollapse()">測試收折功能</button>
+      <button class="test-button" onclick="testTabSwitching()">測試標籤切換</button>
+    </div>
+
+    <div class="test-section">
+      <h2>🎮 手動控制</h2>
+      <button class="test-button" onclick="CursorAutoAccept.start()">啟動 AutoAccept</button>
+      <button class="test-button" onclick="CursorAutoAccept.stop()">停止 AutoAccept</button>
+      <button class="test-button" onclick="showStatus()">顯示狀態</button>
+      <button class="test-button" onclick="CursorAutoAccept.analytics.show()">顯示分析</button>
+    </div>
+
+    <div class="test-section">
+      <h2>🔍 除錯工具</h2>
+      <button class="test-button" onclick="CursorAutoAccept.debug.enable()">啟用除錯</button>
+      <button class="test-button" onclick="CursorAutoAccept.debug.search()">搜尋按鈕</button>
+      <button class="test-button" onclick="testConfigChange()">測試配置變更</button>
+    </div>
+
+    <div class="test-section">
+      <h2>📊 測試結果</h2>
+      <div class="status" id="test-results">等待測試執行...</div>
+    </div>
+
+    <!-- 載入增強版腳本 -->
+    <script src="autoAccept.enhanced.js"></script>
+
+    <script>
+      let testResults = [];
+
+      function log(message, type = 'info') {
+        const timestamp = new Date().toLocaleTimeString();
+        const resultDiv = document.getElementById('test-results');
+        resultDiv.innerHTML += `<div class="${type}">[${timestamp}] ${message}</div>`;
+        console.log(`[Test] ${message}`);
+      }
+
+      function checkFunctionality() {
+        const statusDiv = document.getElementById('functionality-status');
+        statusDiv.innerHTML = '';
+
+        const checks = [
+          {
+            name: 'CursorAutoAccept 命名空間',
+            test: () => typeof window.CursorAutoAccept === 'object',
+          },
+          { name: 'start() 方法', test: () => typeof CursorAutoAccept.start === 'function' },
+          { name: 'stop() 方法', test: () => typeof CursorAutoAccept.stop === 'function' },
+          { name: 'status() 方法', test: () => typeof CursorAutoAccept.status === 'function' },
+          {
+            name: 'configure() 方法',
+            test: () => typeof CursorAutoAccept.configure === 'function',
+          },
+          { name: 'analytics 物件', test: () => typeof CursorAutoAccept.analytics === 'object' },
+          { name: 'debug 物件', test: () => typeof CursorAutoAccept.debug === 'object' },
+          {
+            name: '控制面板元素',
+            test: () => document.getElementById('cursor-auto-accept-v2-panel') !== null,
+          },
+          { name: '向後相容 API', test: () => typeof window.startAccept === 'function' },
+        ];
+
+        let passed = 0;
+        checks.forEach(check => {
+          try {
+            const result = check.test();
+            const status = result ? '✅' : '❌';
+            const className = result ? 'success' : 'error';
+            statusDiv.innerHTML += `<div class="${className}">${status} ${check.name}</div>`;
+            if (result) passed++;
+          } catch (error) {
+            statusDiv.innerHTML += `<div class="error">❌ ${check.name} - 錯誤: ${error.message}</div>`;
+          }
+        });
+
+        const percentage = Math.round((passed / checks.length) * 100);
+        statusDiv.innerHTML += `<div class="info"><strong>功能完整性: ${percentage}% (${passed}/${checks.length})</strong></div>`;
+        log(`功能檢查完成: ${percentage}% 通過`, percentage === 100 ? 'success' : 'warning');
+      }
+
+      function testCollapse() {
+        const statusDiv = document.getElementById('collapse-status');
+        const panel = document.getElementById('cursor-auto-accept-v2-panel');
+
+        if (!panel) {
+          statusDiv.innerHTML = '<div class="error">❌ 控制面板未找到</div>';
+          log('收折測試失敗: 控制面板未找到', 'error');
+          return;
+        }
+
+        statusDiv.innerHTML = '';
+        let step = 1;
+
+        // 測試步驟 1: 檢查初始狀態
+        const isInitiallyMinimized = panel.classList.contains('aa-minimized');
+        statusDiv.innerHTML += `<div class="info">步驟 ${step++}: 初始狀態 - ${isInitiallyMinimized ? '已收折' : '已展開'}</div>`;
+
+        // 測試步驟 2: 收折面板
+        setTimeout(() => {
+          CursorAutoAccept.instance.toggleMinimize();
+          const isMinimized = panel.classList.contains('aa-minimized');
+          statusDiv.innerHTML += `<div class="${isMinimized ? 'success' : 'error'}">步驟 ${step++}: 收折操作 - ${isMinimized ? '✅ 成功' : '❌ 失敗'}</div>`;
+
+          // 測試步驟 3: 展開面板
+          setTimeout(() => {
+            CursorAutoAccept.instance.toggleMinimize();
+            const isExpanded = !panel.classList.contains('aa-minimized');
+            statusDiv.innerHTML += `<div class="${isExpanded ? 'success' : 'error'}">步驟 ${step++}: 展開操作 - ${isExpanded ? '✅ 成功' : '❌ 失敗'}</div>`;
+
+            log('收折功能測試完成', 'success');
+          }, 500);
+        }, 500);
+      }
+
+      function testTabSwitching() {
+        const statusDiv = document.getElementById('collapse-status');
+
+        // 測試標籤切換是否影響收折功能
+        statusDiv.innerHTML += '<div class="info">測試標籤切換與收折功能兼容性...</div>';
+
+        // 切換到分析標籤
+        CursorAutoAccept.instance.switchTab('analytics');
+        setTimeout(() => {
+          // 收折面板
+          CursorAutoAccept.instance.toggleMinimize();
+          const panel = document.getElementById('cursor-auto-accept-v2-panel');
+          const isMinimized = panel.classList.contains('aa-minimized');
+
+          statusDiv.innerHTML += `<div class="${isMinimized ? 'success' : 'error'}">分析標籤收折測試 - ${isMinimized ? '✅ 成功' : '❌ 失敗'}</div>`;
+
+          // 切換回主標籤
+          setTimeout(() => {
+            CursorAutoAccept.instance.switchTab('main');
+            CursorAutoAccept.instance.toggleMinimize(); // 展開
+
+            statusDiv.innerHTML += '<div class="success">✅ 標籤切換測試完成</div>';
+            log('標籤切換兼容性測試完成', 'success');
+          }, 500);
+        }, 500);
+      }
+
+      function showStatus() {
+        const status = CursorAutoAccept.status();
+        log(`狀態: ${JSON.stringify(status, null, 2)}`, 'info');
+      }
+
+      function testConfigChange() {
+        const originalConfig = CursorAutoAccept.status().config;
+        log(`原始配置: ${JSON.stringify(originalConfig)}`, 'info');
+
+        // 測試配置變更
+        CursorAutoAccept.configure({ enableAcceptAll: false });
+        const newConfig = CursorAutoAccept.status().config;
+
+        const success = newConfig.enableAcceptAll === false;
+        log(`配置變更測試: ${success ? '✅ 成功' : '❌ 失敗'}`, success ? 'success' : 'error');
+
+        // 恢復原始配置
+        CursorAutoAccept.configure(originalConfig);
+      }
+
+      // 頁面載入完成後自動執行基本檢查
+      window.addEventListener('load', () => {
+        setTimeout(() => {
+          log('🚀 CursorAutoAccept Enhanced v2.0.1 測試頁面已載入', 'success');
+          checkFunctionality();
+        }, 1000);
+      });
+    </script>
+  </body>
+</html>

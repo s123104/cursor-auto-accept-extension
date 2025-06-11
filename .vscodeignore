@@ -1,0 +1,63 @@
+# 原始碼 (打包時不包含)
+src/**
+!src/**/*.js
+
+# 建置工具
+build/**
+.vscode/**
+.vscode-test/**
+
+# 測試
+test/**
+coverage/**
+.nyc_output/**
+
+# 開發工具
+.eslintrc.*
+eslint.config.js
+.prettierrc.*
+.prettierignore
+.editorconfig
+
+# Git
+.git/**
+.gitignore
+.gitattributes
+
+# npm/yarn
+.npmrc
+.yarnrc
+yarn.lock
+package-lock.json
+
+# TypeScript
+tsconfig.json
+*.tsbuildinfo
+.tsbuildinfo
+
+# 環境
+.env*
+
+# 日誌
+*.log
+
+# 文檔 (開發階段)
+docs/**
+*.md
+!README.md
+
+# 設定檔案
+.husky/**
+lint-staged.config.*
+
+# 其他
+vsc-extension-quickstart.md
+**/tsconfig.json
+**/.eslintrc.json
+**/*.map
+**/*.ts
+node_modules/**
+npm-debug.log
+*.vsix
+.DS_Store
+.cache 

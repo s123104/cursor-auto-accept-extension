@@ -1,0 +1,44 @@
+# 建置輸出
+dist/
+out/
+*.vsix
+
+# 依賴
+node_modules/
+
+# 測試
+.vscode-test/
+coverage/
+.nyc_output/
+
+# TypeScript
+*.tsbuildinfo
+.tsbuildinfo
+
+# 日誌
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# IDE
+.vscode/settings.json
+.vscode/launch.json
+.idea/
+
+# 作業系統
+.DS_Store
+Thumbs.db
+
+# 環境變數
+.env
+.env.local
+.env.*.local
+
+# 快取
+.eslintcache
+.cache/
+
+# Husky
+.husky/_

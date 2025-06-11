@@ -1,0 +1,297 @@
+{
+  "name": "cursor-auto-accept-extension",
+  "displayName": "Cursor Auto Accept Extension",
+  "description": "🚨 專為 Cursor 設計的自動接受程式碼建議擴展套件，包含檔案分析與 ROI 追蹤功能。注意：Cursor 更新可能導致功能失效",
+  "version": "1.0.0",
+  "publisher": "s123104",
+  "private": true,
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.96.0",
+    "node": ">=18.17.0"
+  },
+  "sponsor": {
+    "url": "https://github.com/sponsors/s123104"
+  },
+  "categories": [
+    "Other",
+    "Productivity",
+    "Extension Packs"
+  ],
+  "keywords": [
+    "cursor",
+    "auto-accept",
+    "code-generation",
+    "productivity",
+    "ai-assistant",
+    "cursor-specific",
+    "automation",
+    "cursor-only",
+    "cursor-extension",
+    "ai-workflow",
+    "code-assistant"
+  ],
+  "galleryBanner": {
+    "color": "#1e1e1e",
+    "theme": "dark"
+  },
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "cursorAutoAccept.toggle",
+        "title": "切換自動接受功能",
+        "category": "Cursor Auto Accept",
+        "icon": "$(zap)"
+      },
+      {
+        "command": "cursorAutoAccept.showPanel",
+        "title": "顯示控制面板",
+        "category": "Cursor Auto Accept",
+        "icon": "$(dashboard)"
+      },
+      {
+        "command": "cursorAutoAccept.showAnalytics",
+        "title": "顯示分析報告",
+        "category": "Cursor Auto Accept",
+        "icon": "$(graph)"
+      },
+      {
+        "command": "cursorAutoAccept.exportData",
+        "title": "匯出分析資料",
+        "category": "Cursor Auto Accept",
+        "icon": "$(export)"
+      },
+      {
+        "command": "cursorAutoAccept.clearData",
+        "title": "清除所有資料",
+        "category": "Cursor Auto Accept",
+        "icon": "$(trash)"
+      }
+    ],
+    "configuration": {
+      "title": "Cursor Auto Accept",
+      "properties": {
+        "cursorAutoAccept.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "啟用自動接受功能",
+          "scope": "window"
+        },
+        "cursorAutoAccept.interval": {
+          "type": "number",
+          "default": 2000,
+          "minimum": 500,
+          "maximum": 10000,
+          "description": "檢查間隔時間（毫秒）",
+          "scope": "window"
+        },
+        "cursorAutoAccept.enableAcceptAll": {
+          "type": "boolean",
+          "default": true,
+          "description": "啟用 Accept All 按鈕",
+          "scope": "window"
+        },
+        "cursorAutoAccept.enableAccept": {
+          "type": "boolean",
+          "default": true,
+          "description": "啟用 Accept 按鈕",
+          "scope": "window"
+        },
+        "cursorAutoAccept.enableRun": {
+          "type": "boolean",
+          "default": true,
+          "description": "啟用 Run 按鈕",
+          "scope": "window"
+        },
+        "cursorAutoAccept.enableApply": {
+          "type": "boolean",
+          "default": true,
+          "description": "啟用 Apply 按鈕",
+          "scope": "window"
+        },
+        "cursorAutoAccept.enableExecute": {
+          "type": "boolean",
+          "default": true,
+          "description": "啟用 Execute 按鈕",
+          "scope": "window"
+        },
+        "cursorAutoAccept.enableResume": {
+          "type": "boolean",
+          "default": true,
+          "description": "啟用 Resume 按鈕",
+          "scope": "window"
+        },
+        "cursorAutoAccept.debugMode": {
+          "type": "boolean",
+          "default": false,
+          "description": "啟用除錯模式",
+          "scope": "window"
+        },
+        "cursorAutoAccept.averageCompleteWorkflow": {
+          "type": "number",
+          "default": 30000,
+          "minimum": 1000,
+          "description": "平均完整工作流程時間（毫秒）",
+          "scope": "window"
+        },
+        "cursorAutoAccept.averageAutomatedWorkflow": {
+          "type": "number",
+          "default": 100,
+          "minimum": 50,
+          "description": "平均自動化工作流程時間（毫秒）",
+          "scope": "window"
+        }
+      }
+    },
+    "keybindings": [
+      {
+        "command": "cursorAutoAccept.toggle",
+        "key": "ctrl+shift+a",
+        "mac": "cmd+shift+a",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "cursorAutoAccept.showPanel",
+        "key": "ctrl+shift+p",
+        "mac": "cmd+shift+p",
+        "when": "editorTextFocus"
+      }
+    ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "cursorAutoAccept.toggle"
+        },
+        {
+          "command": "cursorAutoAccept.showPanel"
+        },
+        {
+          "command": "cursorAutoAccept.showAnalytics"
+        },
+        {
+          "command": "cursorAutoAccept.exportData"
+        },
+        {
+          "command": "cursorAutoAccept.clearData"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "cursorAutoAccept.toggle",
+          "when": "resourceExtname == '.js' || resourceExtname == '.ts' || resourceExtname == '.jsx' || resourceExtname == '.tsx'",
+          "group": "navigation"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run package",
+    "compile": "npm run check-types && npm run bundle",
+    "check-types": "tsc --noEmit",
+    "bundle": "node build/esbuild.js",
+    "bundle:dev": "node build/esbuild.js --dev",
+    "bundle:watch": "node build/esbuild.js --watch",
+    "watch": "npm-run-all -p watch:*",
+    "watch:bundle": "npm run bundle:watch",
+    "watch:types": "tsc --noEmit --watch --project tsconfig.json",
+    "package": "npm run check-types && node build/esbuild.js --production",
+    "lint": "eslint src --ext ts --fix",
+    "lint:check": "eslint src --ext ts",
+    "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,md}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,md}\"",
+    "test": "npm run test:unit && npm run test:integration",
+    "test:unit": "mocha --require tsx/cjs --timeout 10000 \"src/test/**/*.test.ts\"",
+    "test:integration": "node ./out/test/runTest.js",
+    "test:watch": "npm run test:unit -- --watch",
+    "test:coverage": "c8 npm run test:unit",
+    "package:vsix": "vsce package --no-dependencies",
+    "publish": "vsce publish --no-dependencies",
+    "clean": "node scripts/clean.js",
+    "clean:install": "npm run clean && npm ci",
+    "prebuild": "npm run clean",
+    "build": "npm run compile && npm run test && npm run package:vsix",
+    "dev": "npm run bundle:dev",
+    "analyze-bundle": "esbuild-visualizer --bundle dist/extension.js --format html --open",
+    "check-updates": "npm outdated",
+    "update-deps": "npm update",
+    "security-audit": "npm audit",
+    "security-fix": "npm audit fix",
+    "validate": "npm run format:check && npm run lint:check && npm run check-types && npm run test",
+    "prepare": "husky install",
+    "precommit": "lint-staged"
+  },
+  "devDependencies": {
+    "@types/chai": "^5.2.2",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^20.16.15",
+    "@types/sinon": "^17.0.4",
+    "@types/vscode": "^1.96.0",
+    "@typescript-eslint/eslint-plugin": "^8.34.0",
+    "@typescript-eslint/parser": "^8.34.0",
+    "@vscode/test-electron": "^2.4.1",
+    "@vscode/vsce": "^3.5.0",
+    "c8": "^10.1.3",
+    "chai": "^5.2.0",
+    "esbuild": "^0.24.2",
+    "esbuild-visualizer": "^0.6.0",
+    "eslint": "^8.57.1",
+    "eslint-config-prettier": "^10.1.5",
+    "eslint-plugin-prettier": "^5.2.1",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.2.11",
+    "mocha": "^11.6.0",
+    "npm-run-all": "^4.1.5",
+    "prettier": "^3.4.2",
+    "rimraf": "^6.0.1",
+    "sinon": "^19.0.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.8.3"
+  },
+  "lint-staged": {
+    "src/**/*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md}": [
+      "prettier --write"
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/s123104/cursor-auto-accept-extension.git"
+  },
+  "bugs": {
+    "url": "https://github.com/s123104/cursor-auto-accept-extension/issues"
+  },
+  "homepage": "https://github.com/s123104/cursor-auto-accept-extension#readme",
+  "extensionDependencies": [],
+  "extensionPack": [],
+  "badges": [
+    {
+      "url": "https://img.shields.io/badge/Cursor-Specific-orange.svg",
+      "href": "https://cursor.sh",
+      "description": "專為 Cursor 編輯器設計"
+    },
+    {
+      "url": "https://img.shields.io/github/license/s123104/cursor-auto-accept-extension",
+      "href": "https://github.com/s123104/cursor-auto-accept-extension/blob/main/LICENSE",
+      "description": "MIT License"
+    }
+  ],
+  "preview": false,
+  "qna": "marketplace",
+  "capabilities": {
+    "virtualWorkspaces": {
+      "supported": true,
+      "description": "支援虛擬工作區"
+    },
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "description": "在不受信任的工作區中功能有限，需要使用者確認"
+    }
+  }
+}

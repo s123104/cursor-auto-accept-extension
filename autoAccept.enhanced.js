@@ -1,9 +1,9 @@
 /**
- * 📦 模組：Cursor 自動接受增強版腳本 v2.0.3
- * 🕒 最後更新：2025-06-11T18:45:00+08:00
+ * 📦 模組：Cursor 自動接受增強版腳本 v2.0.8
+ * 🕒 最後更新：2025-07-02T16:45:00+08:00
  * 🧑‍💻 作者/更新者：@s123104
- * 🔢 版本：v2.0.3
- * 📝 摘要：修正 run 計算錯誤、ROI 時間計算邏輯、配置介面改進、現代化卷軸設計
+ * 🔢 版本：v2.0.8
+ * 📝 摘要：加強Try Again自動點擊、添加無效點擊檢測機制、優化時間計算邏輯
  *
  * 🎯 完整功能重構清單：
  * ✅ 自動檢測和點擊按鈕功能 - checkAndClick(), findAcceptButtons()
@@ -49,7 +49,7 @@
    * 🎯 核心命名空間 - 避免全域污染
    */
   const CursorAutoAccept = {
-    version: '2.0.2',
+    version: '2.0.7',
     instance: null,
 
     // 公開 API
@@ -121,6 +121,31 @@
       'span.markdown-link[data-link="command:composer.resumeCurrentChat"]',
       '[data-command*="resume"]',
     ],
+
+    // Resume 按鈕選擇器（彈出式下拉選單）
+    resumeButtons: [
+      'div[class*="anysphere-secondary-button"]',
+      'div[class*="anysphere-text-button"]',
+      '.markdown-link[data-link*="resume"]',
+    ],
+
+    // Try Again 按鈕選擇器（彈出式下拉選單）
+    tryAgainButtons: [
+      'div[class*="anysphere-secondary-button"]',
+      'div[class*="anysphere-text-button"]',
+      '.anysphere-secondary-button',
+      '.anysphere-text-button',
+      'div.anysphere-secondary-button',
+      'div.anysphere-text-button',
+    ],
+
+    // 下拉選單容器選擇器
+    dropdownContainers: [
+      '.bg-dropdown-background',
+      '[class*="dropdown"]',
+      '[class*="popup"]',
+      '[style*="box-shadow"]',
+    ],
   };
 
   /**
@@ -160,6 +185,11 @@
     resume: {
       keywords: ['resume', 'continue'],
       priority: 7,
+      extraTime: 3000,
+    },
+    tryAgain: {
+      keywords: ['try again', 'try-again', 'tryagain', 'retry', '重新嘗試', '再試一次'],
+      priority: 3,
       extraTime: 3000,
     },
   };
@@ -203,12 +233,21 @@
         this.handleMutations(mutations);
       });
 
-      // 監視配置
+      // 優化的監視配置
       const config = {
         childList: true,
         subtree: true,
         attributes: true,
-        attributeFilter: ['class', 'style', 'data-message-index'],
+        // 擴展屬性監視範圍
+        attributeFilter: [
+          'class',
+          'style',
+          'data-message-index',
+          'disabled',
+          'hidden',
+          'aria-disabled',
+          'aria-hidden',
+        ],
       };
 
       this.observer.observe(document.body, config);
@@ -306,7 +345,23 @@
       const codeBlockKeywords = ['composer', 'code-block', 'diff', 'button'];
       const hasCodeBlockClass = codeBlockKeywords.some(keyword => className.includes(keyword));
 
-      return hasButtonKeywords || hasCodeBlockClass;
+      // 檢查是否為 anysphere 按鈕（新增的 Resume 按鈕類型）
+      const anysphereBtnKeywords = [
+        'anysphere-secondary-button',
+        'anysphere-text-button',
+        'bg-dropdown-background',
+      ];
+      const hasAnysphereBtnClass = anysphereBtnKeywords.some(keyword =>
+        className.includes(keyword)
+      );
+
+      // 檢查是否為下拉選單容器
+      const dropdownKeywords = ['dropdown', 'popup', 'box-shadow'];
+      const hasDropdownIndicator = dropdownKeywords.some(
+        keyword => className.includes(keyword) || element.style.cssText?.includes(keyword)
+      );
+
+      return hasButtonKeywords || hasCodeBlockClass || hasAnysphereBtnClass || hasDropdownIndicator;
     }
   }
 
@@ -347,7 +402,7 @@
     }
 
     /**
-     * 完成工作流程計時
+     * 完成工作流程計時（使用實際測量時間）
      */
     completeWorkflow(result = {}) {
       if (!this.currentWorkflow || this.currentWorkflow.completed) return;
@@ -355,12 +410,21 @@
       const endTime = performance.now();
       const totalTime = endTime - this.currentWorkflow.startTime;
 
+      // 優先使用傳入的實際執行時間，如果沒有則使用計算的總時間
+      const actualExecutionTime = result.actualTime || totalTime;
+
       this.currentWorkflow.completed = true;
       this.currentWorkflow.endTime = endTime;
       this.currentWorkflow.totalTime = totalTime;
+      this.currentWorkflow.actualExecutionTime = actualExecutionTime;
       this.currentWorkflow.result = result;
 
       this.measurements.push({ ...this.currentWorkflow });
+
+      // 更新實際自動時間統計
+      if (this.currentWorkflow.context.type === 'auto' && actualExecutionTime > 0) {
+        this.updateActualAutoTime(actualExecutionTime);
+      }
 
       // 動態調整平均時間
       this.updateAverages();
@@ -399,12 +463,31 @@
     }
 
     /**
-     * 計算節省的時間
+     * 更新實際自動時間統計（基於實際測量）
      */
-    calculateTimeSaved(buttonType = 'accept') {
+    updateActualAutoTime(actualTime) {
+      if (!actualTime || actualTime <= 0) return;
+
+      // 動態調整平均自動時間，給予較新測量值更高權重
+      const weight = 0.3; // 30% 新值權重
+      this.averageAutoTime = this.averageAutoTime * (1 - weight) + actualTime * weight;
+
+      // 保持合理的最小值，避免過於樂觀的估計
+      this.averageAutoTime = Math.max(50, this.averageAutoTime); // 最小 50ms
+
+      // 保持合理的最大值，避免異常值影響
+      this.averageAutoTime = Math.min(5000, this.averageAutoTime); // 最大 5秒
+    }
+
+    /**
+     * 計算節省的時間（使用實際測量時間）
+     */
+    calculateTimeSaved(buttonType = 'accept', actualExecutionTime = null) {
       const pattern = BUTTON_PATTERNS[buttonType] || BUTTON_PATTERNS.accept;
       const manualTime = this.averageManualTime + pattern.extraTime;
-      const autoTime = this.averageAutoTime;
+
+      // 如果提供了實際執行時間，優先使用實際時間
+      const autoTime = actualExecutionTime !== null ? actualExecutionTime : this.averageAutoTime;
 
       return Math.max(0, manualTime - autoTime);
     }
@@ -453,9 +536,9 @@
     }
 
     /**
-     * 記錄檔案接受
+     * 記錄檔案接受（使用實際測量時間）
      */
-    recordFileAcceptance(fileInfo, buttonType, timeSaved) {
+    recordFileAcceptance(fileInfo, buttonType, timeSaved, actualExecutionTime = null) {
       const { filename, addedLines = 0, deletedLines = 0 } = fileInfo;
       const timestamp = new Date();
 
@@ -467,6 +550,11 @@
         existing.totalAdded += addedLines;
         existing.totalDeleted += deletedLines;
         existing.buttonTypes.set(buttonType, (existing.buttonTypes.get(buttonType) || 0) + 1);
+        // 追蹤實際執行時間
+        if (actualExecutionTime !== null) {
+          existing.totalExecutionTime = (existing.totalExecutionTime || 0) + actualExecutionTime;
+          existing.averageExecutionTime = existing.totalExecutionTime / existing.acceptCount;
+        }
       } else {
         this.data.files.set(filename, {
           acceptCount: 1,
@@ -475,10 +563,12 @@
           totalAdded: addedLines,
           totalDeleted: deletedLines,
           buttonTypes: new Map([[buttonType, 1]]),
+          totalExecutionTime: actualExecutionTime || 0,
+          averageExecutionTime: actualExecutionTime || 0,
         });
       }
 
-      // 記錄會話
+      // 記錄會話（包含實際執行時間）
       this.data.sessions.push({
         filename,
         addedLines,
@@ -486,12 +576,13 @@
         timestamp,
         buttonType,
         timeSaved,
+        actualExecutionTime: actualExecutionTime || 0,
       });
 
       // 更新按鈕類型統計
       this.data.buttonTypes.set(buttonType, (this.data.buttonTypes.get(buttonType) || 0) + 1);
 
-      // 更新總計
+      // 更新總計（使用實際測量時間）
       this.data.totalAccepts++;
       this.data.roiData.totalTimeSaved += timeSaved;
       this.data.roiData.workflowSessions.push({
@@ -499,15 +590,16 @@
         buttonType,
         timeSaved,
         filename,
+        actualExecutionTime: actualExecutionTime || 0,
       });
 
       this.saveToStorage();
     }
 
-    recordBasicAcceptance(buttonType, timeSaved) {
+    recordBasicAcceptance(buttonType, timeSaved, actualExecutionTime = null) {
       const timestamp = new Date();
 
-      // 更新會話統計 - 即使沒有檔案信息
+      // 更新會話統計 - 即使沒有檔案信息（包含實際執行時間）
       this.data.sessions.push({
         filename: '未知檔案',
         addedLines: 0,
@@ -515,12 +607,13 @@
         timestamp,
         buttonType,
         timeSaved,
+        actualExecutionTime: actualExecutionTime || 0,
       });
 
       // 更新按鈕類型統計
       this.data.buttonTypes.set(buttonType, (this.data.buttonTypes.get(buttonType) || 0) + 1);
 
-      // 更新總計
+      // 更新總計（使用實際測量時間）
       this.data.totalAccepts++;
       this.data.roiData.totalTimeSaved += timeSaved;
       this.data.roiData.workflowSessions.push({
@@ -528,6 +621,7 @@
         buttonType,
         timeSaved,
         filename: '未知檔案',
+        actualExecutionTime: actualExecutionTime || 0,
       });
 
       this.saveToStorage();
@@ -586,7 +680,10 @@
         this.data.sessions = data.sessions || [];
         this.data.totalAccepts = data.totalAccepts || 0;
         this.data.sessionStart = data.sessionStart ? new Date(data.sessionStart) : new Date();
-        this.data.roiData = data.roiData || { totalTimeSaved: 0, workflowSessions: [] };
+        this.data.roiData = data.roiData || {
+          totalTimeSaved: 0,
+          workflowSessions: [],
+        };
 
         console.log('[AnalyticsManager] 成功載入儲存資料');
       } catch (error) {
@@ -654,7 +751,13 @@
       const cached = this.cache.get(cacheKey);
 
       if (cached && Date.now() - cached.timestamp < this.cacheTimeout) {
-        return cached.element;
+        // 檢查快取元素是否仍然有效
+        if (this.isElementValid(cached.element)) {
+          return cached.element;
+        } else {
+          // 移除無效快取
+          this.cache.delete(cacheKey);
+        }
       }
 
       for (const selector of selectors) {
@@ -733,7 +836,39 @@
       const text = element.textContent?.toLowerCase().trim() || '';
       const ariaLabel = element.getAttribute('aria-label')?.toLowerCase() || '';
       const title = element.getAttribute('title')?.toLowerCase() || '';
-      const searchText = `${text} ${ariaLabel} ${title}`;
+      const className = element.className?.toLowerCase() || '';
+      const searchText = `${text} ${ariaLabel} ${title} ${className}`;
+
+      // 特殊處理 Resume 按鈕（彈出式下拉選單）
+      if (text === 'resume' || text.includes('resume')) {
+        // 檢查是否為 anysphere 按鈕類型
+        if (
+          className.includes('anysphere-secondary-button') ||
+          className.includes('anysphere-text-button') ||
+          element.closest('.anysphere-secondary-button') ||
+          element.closest('.anysphere-text-button')
+        ) {
+          return 'resume';
+        }
+      }
+
+      // 特殊處理 Try Again 按鈕（彈出式下拉選單）
+      if (
+        text === 'try again' ||
+        text.includes('try again') ||
+        text === 'retry' ||
+        text.includes('retry')
+      ) {
+        // 檢查是否為 anysphere 按鈕類型
+        if (
+          className.includes('anysphere-secondary-button') ||
+          className.includes('anysphere-text-button') ||
+          element.closest('.anysphere-secondary-button') ||
+          element.closest('.anysphere-text-button')
+        ) {
+          return 'tryAgain';
+        }
+      }
 
       for (const [type, config] of Object.entries(BUTTON_PATTERNS)) {
         for (const keyword of config.keywords) {
@@ -777,6 +912,18 @@
     }
 
     /**
+     * 檢查元素是否仍然有效
+     */
+    isElementValid(element) {
+      return (
+        element &&
+        element.isConnected &&
+        document.contains(element) &&
+        this.isElementVisible(element)
+      );
+    }
+
+    /**
      * 清除快取
      */
     clearCache() {
@@ -789,11 +936,23 @@
    */
   class CursorAutoAcceptController {
     constructor() {
-      this.version = '2.0.2';
+      this.version = '2.0.7';
       this.isRunning = false;
       this.monitorInterval = null;
       this.interval = 2000;
       this.totalClicks = 0;
+
+      // 防重複點擊機制
+      this.recentClicks = new Map(); // 記錄最近點擊的按鈕
+      this.lastClickTime = 0;
+      this.minClickInterval = 1000; // 最小點擊間隔 1 秒
+      this.clickCooldownPeriod = 3000; // 同一按鈕冷卻期 3 秒
+      this.processedElements = new WeakSet(); // 追蹤已處理的元素
+
+      // 無效點擊檢測機制
+      this.ineffectiveClicks = new Map(); // 追蹤無效點擊
+      this.maxRetryDuration = 60000; // 1分鐘後停止重試
+      this.clickValidationTimeout = 2000; // 點擊後2秒驗證是否有效
 
       // 初始化模組
       this.eventManager = new EventManager();
@@ -819,11 +978,13 @@
         enableApply: true,
         enableExecute: true,
         enableResume: true,
+        enableTryAgain: false, // 暫時禁用 - 偵測到功能異常，等待修正
       };
 
       this.setupEventHandlers();
       this.createControlPanel();
-      this.log('CursorAutoAccept v2.0.3 已初始化');
+      this.log('CursorAutoAccept v2.0.8 已初始化');
+      this.logToPanel('⚠️ Try Again 功能暫時禁用 - 功能有bug正在修復中', 'warning');
     }
 
     setupEventHandlers() {
@@ -834,12 +995,184 @@
       });
     }
 
+    /**
+     * 清理過期的點擊記錄
+     */
+    cleanupExpiredClicks() {
+      const now = Date.now();
+      for (const [elementKey, clickTime] of this.recentClicks.entries()) {
+        if (now - clickTime > this.clickCooldownPeriod) {
+          this.recentClicks.delete(elementKey);
+        }
+      }
+
+      // 清理過期的無效點擊記錄
+      for (const [elementKey, clickHistory] of this.ineffectiveClicks.entries()) {
+        if (now - clickHistory.firstAttempt > this.maxRetryDuration) {
+          this.ineffectiveClicks.delete(elementKey);
+        }
+      }
+    }
+
+    /**
+     * 計算實際節省時間（基於實際測量時間）
+     */
+    calculateActualTimeSaved(buttonType, actualExecutionTime) {
+      // 取得按鈕類型配置
+      const pattern = BUTTON_PATTERNS[buttonType] || BUTTON_PATTERNS.accept;
+
+      // 估算手動操作時間（基於按鈕類型的額外時間）
+      const estimatedManualTime = this.roiTimer.averageManualTime + pattern.extraTime;
+
+      // 實際自動化時間包含偵測、驗證和點擊的完整時間
+      const actualAutoTime = actualExecutionTime;
+
+      // 更新 ROI 計時器的實際自動時間統計
+      this.roiTimer.updateActualAutoTime(actualAutoTime);
+
+      // 計算節省時間（使用實際測量值）
+      const timeSaved = Math.max(0, estimatedManualTime - actualAutoTime);
+
+      return timeSaved;
+    }
+
+    /**
+     * 驗證點擊效果的方法
+     */
+    validateClickEffectiveness(elementKey, element, buttonType) {
+      try {
+        // 檢查元素是否仍然存在並可見
+        const stillExists = this.elementFinder.isElementValid(element);
+
+        // 如果 Try Again 按鈕仍然存在，表示點擊無效
+        if (stillExists && buttonType === 'tryAgain') {
+          const now = Date.now();
+
+          if (this.ineffectiveClicks.has(elementKey)) {
+            const clickHistory = this.ineffectiveClicks.get(elementKey);
+            clickHistory.attemptCount++;
+            clickHistory.lastAttempt = now;
+            clickHistory.isIneffective = true;
+          } else {
+            this.ineffectiveClicks.set(elementKey, {
+              firstAttempt: now,
+              lastAttempt: now,
+              attemptCount: 1,
+              isIneffective: true,
+              buttonType: buttonType,
+            });
+          }
+
+          this.logToPanel(`檢測到 ${buttonType} 按鈕點擊無效，將暫停重試`, 'warning');
+        } else {
+          // 點擊有效，清除無效記錄
+          if (this.ineffectiveClicks.has(elementKey)) {
+            this.ineffectiveClicks.delete(elementKey);
+            this.logToPanel(`${buttonType} 按鈕點擊有效，恢復正常操作`, 'info');
+          }
+        }
+      } catch (error) {
+        this.logToPanel(`驗證點擊效果時出錯：${error.message}`, 'error');
+      }
+    }
+
+    /**
+     * 產生元素的唯一標識符
+     */
+    getElementKey(element) {
+      if (!element) return null;
+
+      // 使用元素的多種屬性來創建唯一標識
+      const text = element.textContent?.trim() || '';
+      const className = element.className || '';
+      const tagName = element.tagName || '';
+      const position = this.getElementPosition(element);
+
+      return `${tagName}-${className}-${text.substring(0, 20)}-${position.x}-${position.y}`;
+    }
+
+    /**
+     * 取得元素的位置資訊
+     */
+    getElementPosition(element) {
+      try {
+        const rect = element.getBoundingClientRect();
+        return { x: Math.round(rect.x), y: Math.round(rect.y) };
+      } catch {
+        return { x: 0, y: 0 };
+      }
+    }
+
+    /**
+     * 檢查元素是否可以點擊
+     */
+    canClickElement(element, buttonType) {
+      if (!element || !buttonType) return false;
+
+      const now = Date.now();
+      const elementKey = this.getElementKey(element);
+
+      // 檢查全域點擊間隔
+      if (now - this.lastClickTime < this.minClickInterval) {
+        return false;
+      }
+
+      // 檢查元素是否已被處理過
+      if (this.processedElements.has(element)) {
+        return false;
+      }
+
+      // 檢查無效點擊機制
+      if (elementKey && this.ineffectiveClicks.has(elementKey)) {
+        const clickHistory = this.ineffectiveClicks.get(elementKey);
+        // 如果在最大重試時間內且點擊無效，則跳過
+        if (now - clickHistory.firstAttempt < this.maxRetryDuration && clickHistory.isIneffective) {
+          return false;
+        }
+        // 如果超過最大重試時間，清除記錄並允許重試
+        if (now - clickHistory.firstAttempt >= this.maxRetryDuration) {
+          this.ineffectiveClicks.delete(elementKey);
+        }
+      }
+
+      // 檢查元素特定冷卻期
+      if (elementKey && this.recentClicks.has(elementKey)) {
+        const lastClickTime = this.recentClicks.get(elementKey);
+        if (now - lastClickTime < this.clickCooldownPeriod) {
+          return false;
+        }
+      }
+
+      // 檢查元素狀態
+      if (
+        !this.elementFinder.isElementVisible(element) ||
+        !this.elementFinder.isElementClickable(element)
+      ) {
+        return false;
+      }
+
+      // 檢查是否被禁用
+      if (
+        element.disabled ||
+        element.hasAttribute('disabled') ||
+        element.getAttribute('aria-disabled') === 'true'
+      ) {
+        return false;
+      }
+
+      return true;
+    }
+
     findAcceptButtons() {
       const buttons = [];
+      const processedElements = new Set(); // 去重追蹤
 
       // 使用彈性選擇器查找輸入框
       const inputBox = this.elementFinder.findElement(SELECTORS.inputBox);
       if (!inputBox) return buttons;
+
+      // 清理過期的點擊記錄
+      this.cleanupExpiredClicks();
 
       // 檢查前面的兄弟元素
       let currentElement = inputBox.previousElementSibling;
@@ -847,7 +1180,12 @@
 
       while (currentElement && searchDepth < 5) {
         const buttonsInElement = this.elementFinder.findButtonsBySemantics(currentElement);
-        buttons.push(...buttonsInElement.map(b => b.element));
+        buttonsInElement.forEach(b => {
+          if (!processedElements.has(b.element)) {
+            buttons.push(b.element);
+            processedElements.add(b.element);
+          }
+        });
 
         currentElement = currentElement.previousElementSibling;
         searchDepth++;
@@ -856,7 +1194,32 @@
       // 搜尋 Resume 連結
       if (this.config.enableResume) {
         const resumeElements = this.elementFinder.findElements(SELECTORS.resumeLinks);
-        buttons.push(...resumeElements);
+        resumeElements.forEach(element => {
+          if (!processedElements.has(element)) {
+            buttons.push(element);
+            processedElements.add(element);
+          }
+        });
+
+        // 搜尋 Resume 按鈕（彈出式下拉選單）
+        const resumeButtons = this.findResumeButtons();
+        resumeButtons.forEach(btn => {
+          if (!processedElements.has(btn)) {
+            buttons.push(btn);
+            processedElements.add(btn);
+          }
+        });
+      }
+
+      // 搜尋 Try Again 按鈕
+      if (this.config.enableTryAgain) {
+        const tryAgainButtons = this.findTryAgainButtons();
+        tryAgainButtons.forEach(btn => {
+          if (!processedElements.has(btn)) {
+            buttons.push(btn);
+            processedElements.add(btn);
+          }
+        });
       }
 
       return buttons;
@@ -867,11 +1230,14 @@
         const buttons = this.findAcceptButtons();
         if (buttons.length === 0) return;
 
-        const button = buttons[0];
-        const buttonType = this.elementFinder.identifyButtonType(button);
+        // 遍歷所有按鈕，找到第一個可以點擊的
+        for (const button of buttons) {
+          const buttonType = this.elementFinder.identifyButtonType(button);
 
-        if (this.shouldClickButton(buttonType)) {
-          this.clickElement(button, buttonType);
+          if (this.shouldClickButton(buttonType) && this.canClickElement(button, buttonType)) {
+            this.clickElement(button, buttonType);
+            break; // 只點擊一個按鈕後就退出
+          }
         }
       } catch (error) {
         this.log(`執行時出錯：${error.message}`);
@@ -889,13 +1255,25 @@
         apply: this.config.enableApply,
         execute: this.config.enableExecute,
         resume: this.config.enableResume,
+        tryAgain: this.config.enableTryAgain,
       };
 
-      return typeMap[buttonType] || false;
+      // 只有明確設定為 true 的按鈕類型才能點擊
+      return typeMap[buttonType] === true;
     }
 
     clickElement(element, buttonType) {
       try {
+        const now = Date.now();
+        const elementKey = this.getElementKey(element);
+
+        // 記錄點擊狀態
+        this.lastClickTime = now;
+        if (elementKey) {
+          this.recentClicks.set(elementKey, now);
+        }
+        this.processedElements.add(element);
+
         const startTime = performance.now();
         this.roiTimer.startWorkflow({ type: 'auto', buttonType });
 
@@ -905,22 +1283,37 @@
         // 點擊元素
         element.click();
 
+        // 日誌記錄點擊事件
+        this.logToPanel(`點擊 ${buttonType} 按鈕: ${fileInfo?.filename || '未知檔案'}`, 'info');
+
+        // 延遲驗證點擊效果，特別針對 Try Again 按鈕
+        if (buttonType === 'tryAgain' && elementKey) {
+          setTimeout(() => {
+            this.validateClickEffectiveness(elementKey, element, buttonType);
+          }, this.clickValidationTimeout);
+        }
+
         // 測量實際執行時間
         const endTime = performance.now();
         const actualTime = endTime - startTime;
 
-        // 完成工作流程測量
-        const measurement = this.roiTimer.completeWorkflow({ success: true, fileInfo, actualTime });
+        // 完成工作流程測量，傳入實際執行時間
+        const measurement = this.roiTimer.completeWorkflow({
+          success: true,
+          fileInfo,
+          actualTime,
+          buttonType,
+        });
 
-        // 計算時間節省（使用實際測量時間）
-        const timeSaved = this.roiTimer.calculateTimeSaved(buttonType);
+        // 使用實際測量時間計算節省時間
+        const timeSaved = this.calculateActualTimeSaved(buttonType, actualTime);
 
-        // 記錄分析 - 修正：無論檔案信息是否存在都要記錄統計
+        // 記錄分析 - 使用實際測量時間進行精確記錄
         if (fileInfo) {
-          this.analytics.recordFileAcceptance(fileInfo, buttonType, timeSaved);
+          this.analytics.recordFileAcceptance(fileInfo, buttonType, timeSaved, actualTime);
         } else {
-          // 即使沒有檔案信息，也要記錄基本統計
-          this.analytics.recordBasicAcceptance(buttonType, timeSaved);
+          // 即使沒有檔案信息，也要記錄基本統計和實際執行時間
+          this.analytics.recordBasicAcceptance(buttonType, timeSaved, actualTime);
         }
 
         this.totalClicks++;
@@ -939,7 +1332,10 @@
         return true;
       } catch (error) {
         this.logToPanel(`點擊失敗：${error.message}`, 'error');
-        this.roiTimer.completeWorkflow({ success: false, error: error.message });
+        this.roiTimer.completeWorkflow({
+          success: false,
+          error: error.message,
+        });
         return false;
       }
     }
@@ -1044,6 +1440,138 @@
         console.warn('[extractFileInfoFromBlock] 錯誤:', error);
         return null;
       }
+    }
+
+    /**
+     * 專門搜尋 Resume 按鈕方法
+     */
+    findResumeButtons() {
+      const resumeButtons = [];
+
+      // 搜尋下拉選單容器
+      const dropdownContainers = this.elementFinder.findElements(SELECTORS.dropdownContainers);
+
+      for (const container of dropdownContainers) {
+        // 在每個下拉選單中搜尋 Resume 按鈕
+        const buttons = this.findResumeButtonsInContainer(container);
+        resumeButtons.push(...buttons);
+      }
+
+      // 也在整個文檔中搜尋（備用方法）
+      const globalResumeButtons = this.findResumeButtonsInContainer(document);
+      resumeButtons.push(...globalResumeButtons);
+
+      return resumeButtons;
+    }
+
+    /**
+     * 在指定容器中搜尋 Resume 按鈕
+     */
+    findResumeButtonsInContainer(container) {
+      const buttons = [];
+
+      // 方法 1: 搜尋 anysphere-secondary-button 和 anysphere-text-button
+      const anysphereBtns = container.querySelectorAll(
+        '.anysphere-secondary-button, .anysphere-text-button, [class*="anysphere-secondary-button"], [class*="anysphere-text-button"]'
+      );
+
+      for (const btn of anysphereBtns) {
+        const span = btn.querySelector('span');
+        if (span && span.textContent.trim().toLowerCase().includes('resume')) {
+          buttons.push(btn);
+        }
+      }
+
+      // 方法 2: 直接搜尋包含 "Resume" 文字的可點擊元素
+      const allClickableElements = container.querySelectorAll(
+        'div[class*="button"], span[class*="button"], button, [role="button"], [onclick], [style*="cursor: pointer"], [style*="cursor:pointer"]'
+      );
+
+      for (const element of allClickableElements) {
+        const text = element.textContent?.trim().toLowerCase() || '';
+        if (text === 'resume' || text.includes('resume')) {
+          // 驗證元素可見性和可點擊性
+          if (
+            this.elementFinder.isElementVisible(element) &&
+            this.elementFinder.isElementClickable(element)
+          ) {
+            buttons.push(element);
+          }
+        }
+      }
+
+      // 移除重複的按鈕
+      return Array.from(new Set(buttons));
+    }
+
+    /**
+     * 專門搜尋 Try Again 按鈕方法
+     */
+    findTryAgainButtons() {
+      const tryAgainButtons = [];
+
+      // 搜尋下拉選單容器
+      const dropdownContainers = this.elementFinder.findElements(SELECTORS.dropdownContainers);
+
+      for (const container of dropdownContainers) {
+        // 在每個下拉選單中搜尋 Try Again 按鈕
+        const buttons = this.findTryAgainButtonsInContainer(container);
+        tryAgainButtons.push(...buttons);
+      }
+
+      // 也在整個文檔中搜尋（備用方法）
+      const globalTryAgainButtons = this.findTryAgainButtonsInContainer(document);
+      tryAgainButtons.push(...globalTryAgainButtons);
+
+      return tryAgainButtons;
+    }
+
+    /**
+     * 在指定容器中搜尋 Try Again 按鈕
+     */
+    findTryAgainButtonsInContainer(container) {
+      const buttons = [];
+
+      // 方法 1: 搜尋 anysphere-secondary-button 和 anysphere-text-button
+      const anysphereBtns = container.querySelectorAll(
+        '.anysphere-secondary-button, .anysphere-text-button, [class*="anysphere-secondary-button"], [class*="anysphere-text-button"]'
+      );
+
+      for (const btn of anysphereBtns) {
+        const span = btn.querySelector('span');
+        if (span) {
+          const spanText = span.textContent.trim().toLowerCase();
+          if (spanText.includes('try again') || spanText.includes('retry')) {
+            buttons.push(btn);
+          }
+        }
+      }
+
+      // 方法 2: 直接搜尋包含 "Try again" 或 "Retry" 文字的可點擊元素
+      const allClickableElements = container.querySelectorAll(
+        'div[class*="button"], span[class*="button"], button, [role="button"], [onclick], [style*="cursor: pointer"], [style*="cursor:pointer"]'
+      );
+
+      for (const element of allClickableElements) {
+        const text = element.textContent?.trim().toLowerCase() || '';
+        if (
+          text === 'try again' ||
+          text.includes('try again') ||
+          text === 'retry' ||
+          text.includes('retry')
+        ) {
+          // 驗證元素可見性和可點擊性
+          if (
+            this.elementFinder.isElementVisible(element) &&
+            this.elementFinder.isElementClickable(element)
+          ) {
+            buttons.push(element);
+          }
+        }
+      }
+
+      // 移除重複的按鈕
+      return Array.from(new Set(buttons));
     }
 
     extractFileInfoFallback(button) {
@@ -1235,6 +1763,14 @@
           tooltip: '自動點擊 "Resume" 連結來繼續中斷的對話',
           checked: true,
         },
+        {
+          id: 'aa-try-again',
+          text: '重新嘗試',
+          english: 'Try Again',
+          tooltip: '功能暫時禁用：Try Again 功能有bug正在修復中',
+          checked: false,
+          disabled: true, // 暫時禁用該選項
+        },
       ];
 
       configOptions.forEach(option => {
@@ -1245,19 +1781,34 @@
         checkbox.type = 'checkbox';
         checkbox.id = option.id;
         checkbox.checked = option.checked;
+        if (option.disabled) {
+          checkbox.disabled = true;
+        }
 
         const textSpan = document.createElement('span');
         textSpan.className = 'aa-config-text';
         textSpan.textContent = ' ' + option.text;
+        if (option.disabled) {
+          textSpan.style.color = '#666';
+          textSpan.style.textDecoration = 'line-through';
+        }
 
         const englishSpan = document.createElement('span');
         englishSpan.className = 'aa-config-english';
         englishSpan.textContent = option.english;
+        if (option.disabled) {
+          englishSpan.style.color = '#555';
+          englishSpan.style.textDecoration = 'line-through';
+        }
 
         const infoIcon = document.createElement('span');
         infoIcon.className = 'aa-config-info';
-        infoIcon.textContent = '!';
+        infoIcon.textContent = option.disabled ? '⚠' : '!';
         infoIcon.title = option.tooltip;
+        if (option.disabled) {
+          infoIcon.style.background = '#FF9800';
+          infoIcon.style.color = '#fff';
+        }
 
         label.appendChild(checkbox);
         label.appendChild(textSpan);
@@ -1275,7 +1826,7 @@
       // 版權區域
       const credits = this.createElement('div', 'aa-credits');
       const small = document.createElement('small');
-      small.textContent = 'Enhanced v2.0.3 by ';
+      small.textContent = 'Enhanced v2.0.6 by ';
       const link = document.createElement('a');
       link.href = 'https://linkedin.com/in/ivalsaraj';
       link.target = '_blank';
@@ -1550,28 +2101,23 @@
           line-height: 1.3;
         }
         
-        /* 現代化統一捲軸設計 - 適用於所有可滾動區域 */
+        /* 細卷軸設計 - 適用於所有可滾動區域 */
         #cursor-auto-accept-v2-panel ::-webkit-scrollbar {
-          width: 6px;
-          height: 6px;
+        width: 4px;
+        height: 4px;
         }
-        
+
         #cursor-auto-accept-v2-panel ::-webkit-scrollbar-track {
-          background: #1e1e1e;
-          border-radius: 3px;
-          margin: 2px;
+        background: transparent;
         }
-        
+
         #cursor-auto-accept-v2-panel ::-webkit-scrollbar-thumb {
-          background: #555;
-          border-radius: 3px;
-          transition: all 0.2s ease;
-          min-height: 20px;
+        background: #666;
+        border-radius: 2px;
         }
-        
+
         #cursor-auto-accept-v2-panel ::-webkit-scrollbar-thumb:hover {
-          background: #777;
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        background: #888;
         }
         
         #cursor-auto-accept-v2-panel ::-webkit-scrollbar-thumb:active {
@@ -1816,6 +2362,7 @@
         'aa-apply': 'enableApply',
         'aa-execute': 'enableExecute',
         'aa-resume': 'enableResume',
+        'aa-try-again': 'enableTryAgain',
       };
 
       Object.entries(configMap).forEach(([id, configKey]) => {
@@ -1838,11 +2385,14 @@
       if (this.isRunning) return;
 
       this.isRunning = true;
-      this.domWatcher.start();
 
-      this.monitorInterval = setInterval(() => {
-        this.checkAndClick();
-      }, this.interval);
+      // 重置防重複點擊狀態
+      this.recentClicks.clear();
+      this.processedElements = new WeakSet();
+      this.lastClickTime = 0;
+
+      this.domWatcher.start(); // 僅使用 MutationObserver
+      this.checkAndClick(); // 啟動時立即檢查一次
 
       this.updatePanelStatus();
       this.logToPanel('已開始自動接受', 'info');
@@ -1852,12 +2402,7 @@
       if (!this.isRunning) return;
 
       this.isRunning = false;
-      this.domWatcher.stop();
-
-      if (this.monitorInterval) {
-        clearInterval(this.monitorInterval);
-        this.monitorInterval = null;
-      }
+      this.domWatcher.stop(); // 僅停止 DOM 監視器
 
       this.updatePanelStatus();
       this.logToPanel('已停止自動接受', 'info');
@@ -1943,10 +2488,8 @@
       const analyticsContent = this.controlPanel?.querySelector('.aa-analytics-content');
       if (!analyticsContent) return;
 
-      // 清空現有內容
-      while (analyticsContent.firstChild) {
-        analyticsContent.removeChild(analyticsContent.firstChild);
-      }
+      // 使用 replaceChildren() 替代 while 迴圈
+      analyticsContent.replaceChildren();
 
       if (this.currentTab === 'analytics') {
         this.renderAnalyticsTab(analyticsContent);
@@ -2090,7 +2633,12 @@
       const totalTimeSaved = data.roiData.totalTimeSaved || 0;
       const totalAccepts = data.totalAccepts || 0;
       const averageTimePerClick = totalAccepts > 0 ? totalTimeSaved / totalAccepts : 0;
-      const productivityGain = sessionDuration > 0 ? (totalTimeSaved / sessionDuration) * 100 : 0;
+
+      // 修正生產力提升計算邏輯：相對於沒有自動化的情況下的效率提升
+      // 沒有自動化時的總時間 = 會話時長 + 節省時間
+      const totalTimeWithoutAutomation = sessionDuration + totalTimeSaved;
+      const productivityGain =
+        totalTimeWithoutAutomation > 0 ? (totalTimeSaved / totalTimeWithoutAutomation) * 100 : 0;
 
       // 建立 ROI 摘要
       const summaryDiv = this.createElement('div', 'aa-roi-summary');
@@ -2161,7 +2709,9 @@
 
       scenarios.forEach(scenario => {
         const scenarioDiv = this.createElement('div', 'aa-roi-scenario');
-        scenarioDiv.textContent = `${scenario.period}：節省 ${this.formatTimeDuration(scenario.saved)}`;
+        scenarioDiv.textContent = `${
+          scenario.period
+        }：節省 ${this.formatTimeDuration(scenario.saved)}`;
         impactText.appendChild(scenarioDiv);
       });
 
@@ -2366,7 +2916,9 @@
 
     exportAnalytics() {
       const data = this.analytics.exportData();
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const blob = new Blob([JSON.stringify(data, null, 2)], {
+        type: 'application/json',
+      });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -2425,7 +2977,7 @@
     }
 
     log(message) {
-      console.log(`[CursorAutoAccept v2.0.3] ${message}`);
+      console.log(`[CursorAutoAccept v2.0.8] ${message}`);
       this.logToPanel(message, 'info');
     }
 
@@ -2540,7 +3092,7 @@
   window.exportAnalytics = () => CursorAutoAccept.analytics.export();
   window.clearAnalytics = () => CursorAutoAccept.analytics.clear();
 
-  console.log('✅ CursorAutoAccept v2.0.3 已載入！');
+  console.log('✅ CursorAutoAccept v2.0.8 已載入！');
   console.log('🎛️ 可用命令: startAccept(), stopAccept(), acceptStatus(), debugAccept()');
   console.log('📊 分析命令: showAnalytics(), exportAnalytics(), clearAnalytics()');
 

@@ -1,9 +1,9 @@
 /**
- * 📦 模組：Cursor 自動接受增強版腳本 v2.0.8
- * 🕒 最後更新：2025-07-02T16:45:00+08:00
+ * 📦 模組：Cursor 自動接受增強版腳本 v2.1.1
+ * 🕒 最後更新：2025-07-06T20:30:00+08:00
  * 🧑‍💻 作者/更新者：@s123104
- * 🔢 版本：v2.0.8
- * 📝 摘要：加強Try Again自動點擊、添加無效點擊檢測機制、優化時間計算邏輯
+ * 🔢 版本：v2.1.1
+ * 📝 摘要：新增Move to Background自動點擊功能、優化終端內容監控、強化閒置時間檢測
  *
  * 🎯 完整功能重構清單：
  * ✅ 自動檢測和點擊按鈕功能 - checkAndClick(), findAcceptButtons()
@@ -29,6 +29,8 @@
  * ⭐ 詳細分析報告 - 檔案修改統計、按鈕類型分析
  * ⭐ 安全性增強 - 移除 innerHTML，使用純 DOM API
  * ⭐ 防抖機制 - 避免重複觸發，提升穩定性
+ * ⭐ Move to Background - 智能終端監控，自動移至背景功能
+ * ⭐ 閒置時間檢測 - 30秒無變化自動觸發，優化開發體驗
  *
  * 🎯 影響範圍：完全向後相容，所有原始 API 都保持可用
  * ✅ 測試狀態：已通過功能測試，收折問題已修正
@@ -49,7 +51,7 @@
    * 🎯 核心命名空間 - 避免全域污染
    */
   const CursorAutoAccept = {
-    version: '2.0.7',
+    version: '2.1.1',
     instance: null,
 
     // 公開 API
@@ -146,6 +148,25 @@
       '[class*="popup"]',
       '[style*="box-shadow"]',
     ],
+
+    // Move to Background 按鈕選擇器
+    moveToBackgroundButtons: [
+      'div:contains("Move to background")',
+      'span:contains("Move to background")',
+      '[class*="anysphere-text-button"]:contains("Move to background")',
+      '.flex.flex-nowrap.items-center.justify-center span:contains("Move to background")',
+      '[style*="font-size: 11px"]:contains("Move to background")',
+    ],
+
+    // 終端容器選擇器
+    terminalContainers: [
+      '.terminal-instance-component',
+      '.xterm-screen',
+      '.terminal-wrapper',
+      '.composer-terminal-static-render',
+      '[class*="terminal"]',
+      '.terminal-widget-container',
+    ],
   };
 
   /**
@@ -191,6 +212,17 @@
       keywords: ['try again', 'try-again', 'tryagain', 'retry', '重新嘗試', '再試一次'],
       priority: 3,
       extraTime: 3000,
+    },
+    moveToBackground: {
+      keywords: [
+        'move to background',
+        'move-to-background',
+        'movetobackground',
+        '移至背景',
+        '移到背景',
+      ],
+      priority: 8,
+      extraTime: 1000,
     },
   };
 
@@ -735,6 +767,683 @@
   }
 
   /**
+   * 🔄 BackgroundMover 類別 - 專門處理 Move to Background 自動點擊
+   * 改進版：同時檢測 Move to Background 和 Skip 按鈕的存在
+   */
+  class BackgroundMover {
+    constructor(eventManager, elementFinder) {
+      this.eventManager = eventManager;
+      this.elementFinder = elementFinder;
+
+      // 配置選項
+      this.config = {
+        enabled: false,
+        checkInterval: 30000, // 30秒檢查間隔
+        debounceDelay: 2000, // 2秒防抖延遲（提高穩定性）
+        maxIdleTime: 30000, // 30秒最大閒置時間
+        requireBothButtons: true, // 需要兩個按鈕同時存在
+      };
+
+      // 狀態追蹤
+      this.isWatching = false;
+      this.lastContentHash = '';
+      this.lastChangeTime = Date.now();
+      this.lastButtonsState = { hasMove: false, hasSkip: false };
+      this.lastButtonsStateTime = Date.now();
+      this.contentObserver = null;
+      this.idleCheckTimer = null;
+      this.debounceTimer = null;
+
+      // 統計資料
+      this.stats = {
+        totalMoves: 0,
+        lastMoveTime: null,
+        averageIdleTime: 0,
+        contentChanges: 0,
+        buttonsDetected: 0,
+        skipDetections: 0,
+      };
+    }
+
+    /**
+     * 啟動 Background Mover 功能
+     */
+    start() {
+      if (this.isWatching || !this.config.enabled) return;
+
+      this.isWatching = true;
+      this.lastChangeTime = Date.now();
+      this.lastContentHash = this.getCurrentContentHash();
+
+      this.startContentWatcher();
+      this.startIdleChecker();
+
+      console.log('[BackgroundMover] 已啟動 Move to Background 自動點擊功能');
+    }
+
+    /**
+     * 停止功能
+     */
+    stop() {
+      if (!this.isWatching) return;
+
+      this.isWatching = false;
+      this.stopContentWatcher();
+      this.stopIdleChecker();
+
+      console.log('[BackgroundMover] 已停止 Move to Background 自動點擊功能');
+    }
+
+    /**
+     * 啟動內容監控器 - 使用 MutationObserver 最佳實踐
+     */
+    startContentWatcher() {
+      const terminalContainer = this.findTerminalContainer();
+      if (!terminalContainer) {
+        console.warn('[BackgroundMover] 找不到終端容器，將監控整個 document');
+        this.observeContainer(document.body);
+        return;
+      }
+
+      this.observeContainer(terminalContainer);
+    }
+
+    /**
+     * 設置 MutationObserver 監控容器
+     */
+    observeContainer(container) {
+      this.contentObserver = new MutationObserver(mutations => {
+        this.handleContentMutations(mutations);
+      });
+
+      // 優化的監控配置 - 遵循最佳實踐
+      const observerConfig = {
+        childList: true, // 監控子節點變化
+        subtree: true, // 監控所有子樹
+        characterData: true, // 監控文字內容變化
+        attributes: true, // 監控屬性變化（用於按鈕狀態檢測）
+        attributeFilter: ['class', 'style', 'disabled', 'aria-disabled', 'hidden'], // 只監控特定屬性
+        characterDataOldValue: false, // 不需要舊值，提升效能
+        attributeOldValue: false, // 不需要舊值，提升效能
+      };
+
+      this.contentObserver.observe(container, observerConfig);
+      console.log('[BackgroundMover] 已開始監控終端內容和按鈕狀態變化');
+    }
+
+    /**
+     * 處理內容變化 - 使用 debounce 機制和雙重檢測
+     */
+    handleContentMutations(mutations) {
+      // 檢查是否為相關的內容變化或按鈕狀態變化
+      const hasRelevantChanges = mutations.some(
+        mutation =>
+          this.isRelevantContentMutation(mutation) || this.isRelevantButtonMutation(mutation)
+      );
+
+      if (!hasRelevantChanges) return;
+
+      // 清除現有的 debounce 計時器
+      if (this.debounceTimer) {
+        clearTimeout(this.debounceTimer);
+      }
+
+      // 使用 debounce 避免過度觸發
+      this.debounceTimer = setTimeout(() => {
+        this.checkContentAndButtonsState();
+      }, this.config.debounceDelay);
+    }
+
+    /**
+     * 判斷是否為相關的內容變化
+     */
+    isRelevantContentMutation(mutation) {
+      // 只關注可能影響終端輸出的變化
+      if (mutation.type === 'characterData') {
+        return true; // 文字內容變化總是相關的
+      }
+
+      if (mutation.type === 'childList') {
+        // 檢查新增或移除的節點是否包含文字內容
+        const addedNodes = Array.from(mutation.addedNodes);
+        const removedNodes = Array.from(mutation.removedNodes);
+
+        return [...addedNodes, ...removedNodes].some(node => {
+          if (node.nodeType === Node.TEXT_NODE) {
+            return node.textContent.trim().length > 0;
+          }
+          if (node.nodeType === Node.ELEMENT_NODE) {
+            return node.textContent.trim().length > 0;
+          }
+          return false;
+        });
+      }
+
+      return false;
+    }
+
+    /**
+     * 判斷是否為相關的按鈕變化
+     */
+    isRelevantButtonMutation(mutation) {
+      if (mutation.type === 'attributes') {
+        const target = mutation.target;
+        if (target.nodeType === Node.ELEMENT_NODE) {
+          // 檢查是否為按鈕相關元素的屬性變化
+          return this.isButtonRelatedElement(target);
+        }
+      }
+
+      if (mutation.type === 'childList') {
+        const addedNodes = Array.from(mutation.addedNodes);
+        const removedNodes = Array.from(mutation.removedNodes);
+
+        return [...addedNodes, ...removedNodes].some(node => {
+          if (node.nodeType === Node.ELEMENT_NODE) {
+            // 檢查新增或移除的節點是否包含按鈕
+            return this.containsRelevantButtons(node);
+          }
+          return false;
+        });
+      }
+
+      return false;
+    }
+
+    /**
+     * 檢查元素是否為按鈕相關
+     */
+    isButtonRelatedElement(element) {
+      const text = element.textContent?.trim() || '';
+      const className = element.className || '';
+
+      // 檢查是否包含相關按鈕文字
+      if (text.includes('Move to background') || text.includes('Skip') || text === '⇧⌫ Skip') {
+        return true;
+      }
+
+      // 檢查是否為按鈕相關的CSS類別
+      if (
+        className.includes('anysphere-text-button') ||
+        className.includes('button') ||
+        className.includes('flex-nowrap')
+      ) {
+        return true;
+      }
+
+      return false;
+    }
+
+    /**
+     * 檢查元素是否包含相關按鈕
+     */
+    containsRelevantButtons(element) {
+      if (!element.querySelector) return false;
+
+      // 搜尋Move to background按鈕
+      const moveButtons = element.querySelectorAll('*');
+      for (const btn of moveButtons) {
+        if (btn.textContent?.includes('Move to background')) {
+          return true;
+        }
+      }
+
+      // 搜尋Skip按鈕
+      const skipButtons = element.querySelectorAll('*');
+      for (const btn of skipButtons) {
+        if (btn.textContent?.includes('⇧⌫ Skip') || btn.textContent?.includes('Skip')) {
+          return true;
+        }
+      }
+
+      return false;
+    }
+
+    /**
+     * 檢查內容和按鈕狀態是否有變化
+     */
+    checkContentAndButtonsState() {
+      const currentHash = this.getCurrentContentHash();
+      const currentButtonsState = this.getCurrentButtonsState();
+
+      let hasContentChange = currentHash !== this.lastContentHash;
+      let hasButtonsChange = !this.buttonsStateEqual(currentButtonsState, this.lastButtonsState);
+
+      if (hasContentChange || hasButtonsChange) {
+        // 內容或按鈕狀態有變化，重設計時器
+        if (hasContentChange) {
+          this.lastContentHash = currentHash;
+          this.lastChangeTime = Date.now();
+          this.stats.contentChanges++;
+          console.log('[BackgroundMover] 檢測到內容變化，重設閒置計時器');
+        }
+
+        if (hasButtonsChange) {
+          this.lastButtonsState = currentButtonsState;
+          this.lastButtonsStateTime = Date.now();
+          this.stats.buttonsDetected++;
+          console.log('[BackgroundMover] 檢測到按鈕狀態變化:', currentButtonsState);
+        }
+      }
+    }
+
+    /**
+     * 獲取當前內容的雜湊值 - 用於檢測變化
+     */
+    getCurrentContentHash() {
+      const terminalContainer = this.findTerminalContainer();
+      if (!terminalContainer) return '';
+
+      // 獲取終端的可見文字內容
+      const content = terminalContainer.textContent || '';
+
+      // 簡單的雜湊函數
+      return this.simpleHash(content.trim());
+    }
+
+    /**
+     * 獲取當前按鈕狀態
+     */
+    getCurrentButtonsState() {
+      const moveButton = this.findMoveToBackgroundButton();
+      const skipButton = this.findSkipButton();
+
+      return {
+        hasMove: !!moveButton && this.elementFinder.isElementVisible(moveButton),
+        hasSkip: !!skipButton && this.elementFinder.isElementVisible(skipButton),
+        moveClickable: moveButton ? this.isButtonClickable(moveButton) : false,
+        skipVisible: skipButton ? this.elementFinder.isElementVisible(skipButton) : false,
+      };
+    }
+
+    /**
+     * 比較兩個按鈕狀態是否相等
+     */
+    buttonsStateEqual(state1, state2) {
+      return (
+        state1.hasMove === state2.hasMove &&
+        state1.hasSkip === state2.hasSkip &&
+        state1.moveClickable === state2.moveClickable &&
+        state1.skipVisible === state2.skipVisible
+      );
+    }
+
+    /**
+     * 決定是否應該嘗試點擊
+     */
+    shouldAttemptClick(buttonsState) {
+      if (!this.config.requireBothButtons) {
+        // 如果不要求兩個按鈕同時存在，只檢查Move按鈕
+        return buttonsState.hasMove && buttonsState.moveClickable;
+      }
+
+      // 要求兩個按鈕同時存在且Move按鈕可點擊
+      const shouldClick =
+        buttonsState.hasMove &&
+        buttonsState.hasSkip &&
+        buttonsState.moveClickable &&
+        buttonsState.skipVisible;
+
+      if (shouldClick) {
+        this.stats.skipDetections++;
+        console.log('[BackgroundMover] 檢測到條件滿足：Move和Skip按鈕同時存在');
+      } else {
+        console.log('[BackgroundMover] 條件不滿足:', {
+          hasMove: buttonsState.hasMove,
+          hasSkip: buttonsState.hasSkip,
+          moveClickable: buttonsState.moveClickable,
+          skipVisible: buttonsState.skipVisible,
+        });
+      }
+
+      return shouldClick;
+    }
+
+    /**
+     * 簡單雜湊函數
+     */
+    simpleHash(str) {
+      let hash = 0;
+      if (str.length === 0) return hash;
+
+      for (let i = 0; i < str.length; i++) {
+        const char = str.charCodeAt(i);
+        hash = (hash << 5) - hash + char;
+        hash = hash & hash; // 轉換為32位元整數
+      }
+
+      return hash.toString();
+    }
+
+    /**
+     * 啟動閒置檢查器
+     */
+    startIdleChecker() {
+      this.idleCheckTimer = setInterval(() => {
+        this.checkIdleTime();
+      }, this.config.checkInterval);
+    }
+
+    /**
+     * 檢查閒置時間並決定是否點擊按鈕
+     */
+    checkIdleTime() {
+      const currentTime = Date.now();
+      const contentIdleTime = currentTime - this.lastChangeTime;
+      const buttonsIdleTime = currentTime - this.lastButtonsStateTime;
+      const minIdleTime = Math.min(contentIdleTime, buttonsIdleTime);
+
+      console.log(
+        `[BackgroundMover] 內容閒置: ${Math.round(
+          contentIdleTime / 1000
+        )}秒, 按鈕閒置: ${Math.round(buttonsIdleTime / 1000)}秒`
+      );
+
+      // 檢查當前按鈕狀態
+      const currentButtonsState = this.getCurrentButtonsState();
+
+      // 只有當兩個條件都滿足時才嘗試點擊
+      if (minIdleTime >= this.config.maxIdleTime && this.shouldAttemptClick(currentButtonsState)) {
+        this.attemptMoveToBackground();
+      }
+    }
+
+    /**
+     * 嘗試點擊 Move to Background 按鈕
+     */
+    attemptMoveToBackground() {
+      // 再次確認兩個按鈕都存在
+      const moveButton = this.findMoveToBackgroundButton();
+      const skipButton = this.findSkipButton();
+
+      if (!moveButton) {
+        console.log('[BackgroundMover] 未找到 Move to Background 按鈕');
+        return;
+      }
+
+      if (!skipButton) {
+        console.log('[BackgroundMover] 未找到 Skip 按鈕，不執行自動點擊');
+        return;
+      }
+
+      if (!this.isButtonClickable(moveButton)) {
+        console.log('[BackgroundMover] Move to Background 按鈕不可點擊');
+        return;
+      }
+
+      try {
+        // 最後一次檢查：確保兩個按鈕仍然存在且可見
+        if (
+          !this.elementFinder.isElementVisible(moveButton) ||
+          !this.elementFinder.isElementVisible(skipButton)
+        ) {
+          console.log('[BackgroundMover] 按鈕已不可見，取消點擊');
+          return;
+        }
+
+        // 點擊按鈕
+        moveButton.click();
+
+        // 更新統計
+        this.stats.totalMoves++;
+        this.stats.lastMoveTime = new Date();
+        this.updateAverageIdleTime();
+
+        // 重設計時器
+        const now = Date.now();
+        this.lastChangeTime = now;
+        this.lastButtonsStateTime = now;
+
+        console.log('[BackgroundMover] ✅ 已自動點擊 Move to Background 按鈕（Skip按鈕同時存在）');
+
+        // 發送事件通知
+        this.eventManager.emit('move-to-background-clicked', {
+          timestamp: new Date(),
+          idleTime: now - Math.min(this.lastChangeTime, this.lastButtonsStateTime),
+          totalMoves: this.stats.totalMoves,
+          skipButtonPresent: true,
+        });
+      } catch (error) {
+        console.error('[BackgroundMover] 點擊 Move to Background 按鈕失敗:', error);
+      }
+    }
+
+    /**
+     * 尋找終端容器
+     */
+    findTerminalContainer() {
+      for (const selector of SELECTORS.terminalContainers) {
+        const container = document.querySelector(selector);
+        if (container && this.elementFinder.isElementVisible(container)) {
+          return container;
+        }
+      }
+      return null;
+    }
+
+    /**
+     * 尋找 Move to Background 按鈕 - 使用多種策略
+     */
+    findMoveToBackgroundButton() {
+      // 策略 1: 使用文字內容尋找
+      const textBasedButton = this.findButtonByText('Move to background');
+      if (textBasedButton) return textBasedButton;
+
+      // 策略 2: 深度搜尋
+      return this.deepSearchMoveToBackgroundButton();
+    }
+
+    /**
+     * 尋找 Skip 按鈕 - 多種策略搜尋
+     */
+    findSkipButton() {
+      // 策略 1: 使用完整文字搜尋
+      let skipButton = this.findButtonByText('⇧⌫ Skip');
+      if (skipButton) return skipButton;
+
+      // 策略 2: 使用部分文字搜尋
+      skipButton = this.findButtonByText('Skip');
+      if (skipButton) return skipButton;
+
+      // 策略 3: 使用CSS選擇器搜尋
+      skipButton = this.findSkipButtonBySelector();
+      if (skipButton) return skipButton;
+
+      // 策略 4: 深度搜尋
+      return this.deepSearchSkipButton();
+    }
+
+    /**
+     * 使用CSS選擇器尋找Skip按鈕
+     */
+    findSkipButtonBySelector() {
+      // 根據用戶提供的範例尋找Skip按鈕
+      const selectors = [
+        'span:contains("⇧⌫ Skip")',
+        '[class*="anysphere-text-button"]:contains("Skip")',
+        '.flex.flex-nowrap span:contains("Skip")',
+        '[style*="font-size: 11px"]:contains("Skip")',
+      ];
+
+      for (const selector of selectors) {
+        try {
+          const elements = document.querySelectorAll('*');
+          for (const element of elements) {
+            if (
+              element.textContent?.includes('⇧⌫ Skip') ||
+              element.textContent?.trim() === 'Skip'
+            ) {
+              if (this.elementFinder.isElementVisible(element)) {
+                return element.closest('[class*="button"], [onclick], [role="button"]') || element;
+              }
+            }
+          }
+        } catch (e) {
+          // 忽略選擇器錯誤
+        }
+      }
+
+      return null;
+    }
+
+    /**
+     * 深度搜尋Skip按鈕
+     */
+    deepSearchSkipButton() {
+      // 搜尋包含特定類別和結構的容器
+      const containers = document.querySelectorAll(
+        [
+          '[class*="anysphere"]',
+          '[class*="button"]',
+          '[class*="flex"]',
+          '[style*="font-size: 11px"]',
+          '[style*="line-height: 16px"]',
+        ].join(', ')
+      );
+
+      for (const container of containers) {
+        const spans = container.querySelectorAll('span');
+        for (const span of spans) {
+          const text = span.textContent?.trim();
+          if (text === '⇧⌫ Skip' || text === 'Skip') {
+            const button =
+              span.closest('[class*="button"], [onclick], [role="button"]') || span.parentElement;
+            if (button && this.elementFinder.isElementVisible(button)) {
+              return button;
+            }
+          }
+        }
+      }
+
+      return null;
+    }
+
+    /**
+     * 根據文字內容尋找按鈕
+     */
+    findButtonByText(text) {
+      const clickableElements = document.querySelectorAll(
+        'button, div[role="button"], span[role="button"], [onclick], [style*="cursor: pointer"], [style*="cursor:pointer"]'
+      );
+
+      for (const element of clickableElements) {
+        if (
+          element.textContent.trim().includes(text) &&
+          this.elementFinder.isElementVisible(element)
+        ) {
+          return element;
+        }
+      }
+
+      return null;
+    }
+
+    /**
+     * 深度搜尋 Move to Background 按鈕
+     */
+    deepSearchMoveToBackgroundButton() {
+      // 搜尋包含特定類別的容器
+      const containers = document.querySelectorAll(
+        '[class*="anysphere"], [class*="button"], [class*="flex"]'
+      );
+
+      for (const container of containers) {
+        const spans = container.querySelectorAll('span');
+        for (const span of spans) {
+          if (
+            span.textContent.trim() === 'Move to background' &&
+            this.elementFinder.isElementVisible(span.parentElement)
+          ) {
+            return span.parentElement;
+          }
+        }
+      }
+
+      return null;
+    }
+
+    /**
+     * 檢查按鈕是否可點擊
+     */
+    isButtonClickable(button) {
+      return (
+        this.elementFinder.isElementVisible(button) &&
+        this.elementFinder.isElementClickable(button) &&
+        !button.disabled &&
+        !button.hasAttribute('disabled') &&
+        button.getAttribute('aria-disabled') !== 'true'
+      );
+    }
+
+    /**
+     * 停止內容監控器
+     */
+    stopContentWatcher() {
+      if (this.contentObserver) {
+        this.contentObserver.disconnect();
+        this.contentObserver = null;
+      }
+
+      if (this.debounceTimer) {
+        clearTimeout(this.debounceTimer);
+        this.debounceTimer = null;
+      }
+    }
+
+    /**
+     * 停止閒置檢查器
+     */
+    stopIdleChecker() {
+      if (this.idleCheckTimer) {
+        clearInterval(this.idleCheckTimer);
+        this.idleCheckTimer = null;
+      }
+    }
+
+    /**
+     * 更新平均閒置時間統計
+     */
+    updateAverageIdleTime() {
+      if (this.stats.totalMoves === 0) return;
+
+      const currentIdleTime = Date.now() - this.lastChangeTime;
+      this.stats.averageIdleTime =
+        (this.stats.averageIdleTime * (this.stats.totalMoves - 1) + currentIdleTime) /
+        this.stats.totalMoves;
+    }
+
+    /**
+     * 配置功能
+     */
+    configure(options) {
+      Object.assign(this.config, options);
+
+      // 如果正在運行，重新啟動以應用新配置
+      if (this.isWatching) {
+        this.stop();
+        this.start();
+      }
+    }
+
+    /**
+     * 獲取統計資料
+     */
+    getStats() {
+      const currentButtonsState = this.getCurrentButtonsState();
+
+      return {
+        ...this.stats,
+        isWatching: this.isWatching,
+        config: this.config,
+        currentIdleTime: Date.now() - this.lastChangeTime,
+        currentButtonsIdleTime: Date.now() - this.lastButtonsStateTime,
+        currentButtonsState: currentButtonsState,
+        shouldAttemptClick: this.shouldAttemptClick(currentButtonsState),
+      };
+    }
+  }
+
+  /**
    * 🔍 彈性元素查找器 - 解決頁面結構耦合問題
    */
   class ElementFinder {
@@ -936,7 +1645,7 @@
    */
   class CursorAutoAcceptController {
     constructor() {
-      this.version = '2.0.7';
+      this.version = '2.1.1';
       this.isRunning = false;
       this.monitorInterval = null;
       this.interval = 2000;
@@ -960,6 +1669,7 @@
       this.domWatcher = new DOMWatcher(this.eventManager);
       this.roiTimer = new ROITimer();
       this.analytics = new AnalyticsManager();
+      this.backgroundMover = new BackgroundMover(this.eventManager, this.elementFinder);
 
       // 控制面板
       this.controlPanel = null;
@@ -979,11 +1689,12 @@
         enableExecute: true,
         enableResume: true,
         enableTryAgain: false, // 暫時禁用 - 偵測到功能異常，等待修正
+        enableMoveToBackground: false, // 預設關閉，需要用戶手動啟用
       };
 
       this.setupEventHandlers();
       this.createControlPanel();
-      this.log('CursorAutoAccept v2.0.8 已初始化');
+      this.log('CursorAutoAccept v2.1.1 已初始化');
       this.logToPanel('⚠️ Try Again 功能暫時禁用 - 功能有bug正在修復中', 'warning');
     }
 
@@ -1771,6 +2482,14 @@
           checked: false,
           disabled: true, // 暫時禁用該選項
         },
+        {
+          id: 'aa-move-to-background',
+          text: '智能移至背景',
+          english: 'Smart Move to Background',
+          tooltip:
+            '當終端輸出和按鈕狀態30秒內無變化時，且Move to Background和Skip按鈕同時存在時，自動點擊',
+          checked: false,
+        },
       ];
 
       configOptions.forEach(option => {
@@ -2363,6 +3082,7 @@
         'aa-execute': 'enableExecute',
         'aa-resume': 'enableResume',
         'aa-try-again': 'enableTryAgain',
+        'aa-move-to-background': 'enableMoveToBackground',
       };
 
       Object.entries(configMap).forEach(([id, configKey]) => {
@@ -2370,6 +3090,19 @@
         if (checkbox) {
           checkbox.addEventListener('change', () => {
             this.config[configKey] = checkbox.checked;
+
+            // 特殊處理 Move to Background 功能
+            if (configKey === 'enableMoveToBackground') {
+              if (checkbox.checked && this.isRunning) {
+                this.backgroundMover.configure({ enabled: true });
+                this.backgroundMover.start();
+                this.logToPanel('已啟用 Move to Background 自動點擊功能', 'info');
+              } else {
+                this.backgroundMover.stop();
+                this.logToPanel('已停用 Move to Background 自動點擊功能', 'info');
+              }
+            }
+
             // 同步相關配置
             if (configKey === 'enableRun') {
               this.config.enableRunCommand = checkbox.checked;
@@ -2394,6 +3127,12 @@
       this.domWatcher.start(); // 僅使用 MutationObserver
       this.checkAndClick(); // 啟動時立即檢查一次
 
+      // 啟動 Move to Background 功能（如果已啟用）
+      if (this.config.enableMoveToBackground) {
+        this.backgroundMover.configure({ enabled: true });
+        this.backgroundMover.start();
+      }
+
       this.updatePanelStatus();
       this.logToPanel('已開始自動接受', 'info');
     }
@@ -2403,6 +3142,7 @@
 
       this.isRunning = false;
       this.domWatcher.stop(); // 僅停止 DOM 監視器
+      this.backgroundMover.stop(); // 停止 Move to Background 功能
 
       this.updatePanelStatus();
       this.logToPanel('已停止自動接受', 'info');
@@ -2580,6 +3320,46 @@
         });
 
         summaryDiv.appendChild(buttonTypeDiv);
+      }
+
+      // 添加 Move to Background 統計
+      const backgroundStats = this.backgroundMover.getStats();
+      if (backgroundStats.totalMoves > 0) {
+        const bgStatsDiv = this.createElement('div', 'aa-background-stats');
+        bgStatsDiv.style.marginTop = '8px';
+
+        const bgTitle = this.createElement('h5', '', '🔄 背景移動統計');
+        bgTitle.style.cssText = 'margin: 8px 0 4px 0; font-size: 11px; color: #ddd;';
+        bgStatsDiv.appendChild(bgTitle);
+
+        const bgStatsData = [
+          { label: '自動移動次數：', value: `${backgroundStats.totalMoves}次` },
+          {
+            label: '平均閒置時間：',
+            value: this.formatTimeDuration(backgroundStats.averageIdleTime),
+          },
+          {
+            label: '最後移動時間：',
+            value: backgroundStats.lastMoveTime
+              ? this.getTimeAgo(backgroundStats.lastMoveTime)
+              : '無',
+          },
+        ];
+
+        bgStatsData.forEach(stat => {
+          const statDiv = this.createElement('div', 'aa-stat');
+          statDiv.style.cssText = 'font-size: 10px; padding: 2px 0;';
+
+          const labelSpan = this.createElement('span', 'aa-stat-label', stat.label);
+          const valueSpan = this.createElement('span', 'aa-stat-value', stat.value);
+          valueSpan.style.color = '#2196F3';
+
+          statDiv.appendChild(labelSpan);
+          statDiv.appendChild(valueSpan);
+          bgStatsDiv.appendChild(statDiv);
+        });
+
+        summaryDiv.appendChild(bgStatsDiv);
       }
 
       // 建立檔案部分
@@ -2977,7 +3757,7 @@
     }
 
     log(message) {
-      console.log(`[CursorAutoAccept v2.0.8] ${message}`);
+      console.log(`[CursorAutoAccept v2.1.1] ${message}`);
       this.logToPanel(message, 'info');
     }
 
@@ -3092,9 +3872,10 @@
   window.exportAnalytics = () => CursorAutoAccept.analytics.export();
   window.clearAnalytics = () => CursorAutoAccept.analytics.clear();
 
-  console.log('✅ CursorAutoAccept v2.0.8 已載入！');
+  console.log('✅ CursorAutoAccept v2.1.1 已載入！');
   console.log('🎛️ 可用命令: startAccept(), stopAccept(), acceptStatus(), debugAccept()');
   console.log('📊 分析命令: showAnalytics(), exportAnalytics(), clearAnalytics()');
+  console.log('🔄 新功能: Move to Background 自動點擊 - 在控制面板設定中啟用');
 
   window.CursorAutoAccept = CursorAutoAccept;
 })();

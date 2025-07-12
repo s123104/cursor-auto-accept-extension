@@ -1,0 +1,62 @@
+version: 2
+
+updates:
+  # Enable version updates for npm
+  - package-ecosystem: 'npm'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '09:00'
+    open-pull-requests-limit: 10
+    reviewers:
+      - 's123104'
+    assignees:
+      - 's123104'
+    commit-message:
+      prefix: 'chore'
+      prefix-development: 'chore'
+      include: 'scope'
+    labels:
+      - 'dependencies'
+      - 'security'
+    allow:
+      - dependency-type: 'direct'
+      - dependency-type: 'indirect'
+    ignore:
+      # Ignore major version updates for stable packages
+      - dependency-name: '@types/vscode'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'typescript'
+        update-types: ['version-update:semver-major']
+    groups:
+      typescript-eslint:
+        patterns:
+          - '@typescript-eslint/*'
+      vscode-test:
+        patterns:
+          - '@vscode/*'
+      development-dependencies:
+        dependency-type: 'development'
+        update-types:
+          - 'minor'
+          - 'patch'
+
+  # Enable version updates for GitHub Actions
+  - package-ecosystem: 'github-actions'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '09:00'
+    open-pull-requests-limit: 5
+    reviewers:
+      - 's123104'
+    assignees:
+      - 's123104'
+    commit-message:
+      prefix: 'ci'
+      include: 'scope'
+    labels:
+      - 'github-actions'
+      - 'ci/cd'

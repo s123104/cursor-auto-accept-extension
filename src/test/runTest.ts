@@ -1,9 +1,9 @@
 /**
- * 📦 模組：測試運行器
- * 🕒 最後更新：2025-06-11T13:16:37+08:00
- * 🧑‍💻 作者/更新者：@s123104
- * 🔢 版本：v1.0.0
- * 📝 摘要：VS Code 擴展測試運行器
+ * VS Code 擴展測試運行器
+ * 配置和執行整合測試
+ *
+ * @author @s123104
+ * @date 2025-07-12T04:59:51+08:00
  */
 
 import * as path from 'path';
@@ -11,26 +11,20 @@ import { runTests } from '@vscode/test-electron';
 
 async function main() {
   try {
-    // 擴展開發路徑
+    // 擴展開發目錄路徑
     const extensionDevelopmentPath = path.resolve(__dirname, '../../');
 
     // 測試套件路徑
     const extensionTestsPath = path.resolve(__dirname, './suite/index');
 
-    // 下載 VS Code，解壓縮並運行整合測試
+    // 下載並運行測試
     await runTests({
       extensionDevelopmentPath,
       extensionTestsPath,
-      launchArgs: [
-        '--disable-extensions', // 禁用其他擴展以避免干擾
-        '--new-window',
-      ],
+      launchArgs: ['--disable-extensions', '--disable-gpu', '--no-sandbox'],
     });
-
-    console.log('✅ 所有測試通過');
   } catch (err) {
-    console.error('❌ 測試失敗');
-    console.error(err);
+    console.error('Failed to run tests:', err);
     process.exit(1);
   }
 }

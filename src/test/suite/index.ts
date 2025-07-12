@@ -1,65 +1,55 @@
 /**
- * 📦 模組：測試套件索引
- * 🕒 最後更新：2025-06-11T13:16:37+08:00
- * 🧑‍💻 作者/更新者：@s123104
- * 🔢 版本：v1.0.0
- * 📝 摘要：整合所有測試套件
+ * 測試套件索引文件
+ * 配置 Mocha 測試框架並載入所有測試文件
+ *
+ * @author @s123104
+ * @date 2025-07-12T04:59:51+08:00
  */
 
 import * as path from 'path';
-import * as fs from 'fs';
+import Mocha from 'mocha';
+import { glob } from 'glob';
 
-// 使用動態導入來處理 Mocha
-export async function run(): Promise<void> {
-  // 動態導入 Mocha
-  const { default: Mocha } = await import('mocha');
-
-  // 創建 Mocha 測試實例
+/**
+ * 測試套件索引文件
+ * 配置 Mocha 測試框架並載入所有測試文件
+ *
+ * @author @s123104
+ * @date 2025-07-12T04:59:51+08:00
+ */
+export function run(): Promise<void> {
+  // 創建 Mocha 實例
   const mocha = new Mocha({
     ui: 'tdd',
     color: true,
     timeout: 10000,
+    reporter: 'spec',
   });
 
   const testsRoot = path.resolve(__dirname, '..');
 
-  try {
-    // 手動查找測試文件
-    const findTestFiles = (dir: string): string[] => {
-      const files: string[] = [];
-      const items = fs.readdirSync(dir);
-
-      for (const item of items) {
-        const fullPath = path.join(dir, item);
-        const stat = fs.statSync(fullPath);
-
-        if (stat.isDirectory()) {
-          files.push(...findTestFiles(fullPath));
-        } else if (item.endsWith('.test.js')) {
-          files.push(fullPath);
-        }
+  return new Promise((resolve, reject) => {
+    // 使用 glob 查找所有測試文件（callback 形式）
+    glob('**/**.test.js', { cwd: testsRoot }, (err, files) => {
+      if (err) {
+        reject(err);
+        return;
       }
-
-      return files;
-    };
-
-    const testFiles = findTestFiles(testsRoot);
-
-    // 添加檔案到測試套件
-    testFiles.forEach((file: string) => mocha.addFile(file));
-
-    // 運行 Mocha 測試
-    return new Promise<void>((resolve, reject) => {
-      mocha.run((failures: number) => {
-        if (failures > 0) {
-          reject(new Error(`${failures} tests failed.`));
-        } else {
-          resolve();
-        }
-      });
+      // files 型別為 string[]
+      files.forEach((f: string) => mocha.addFile(path.resolve(testsRoot, f)));
+      try {
+        // 運行測試
+        mocha.run((failures: number) => {
+          if (failures > 0) {
+            reject(new Error(`${failures} tests failed.`));
+          } else {
+            resolve();
+          }
+        });
+      } catch (err) {
+        console.error(err);
+        reject(err);
+      }
     });
-  } catch (err) {
-    console.error(err);
-    throw err;
-  }
+  });
 }

@@ -1,8 +1,8 @@
 /**
- * 📦 模組：Cursor 自動接受增強版腳本 v2.1.1
- * 🕒 最後更新：2025-07-06T20:30:00+08:00
+ * 📦 模組：Cursor 自動接受增強版腳本 v2.4.0
+ * 🕒 最後更新：2025-07-13T02:46:52+08:00
  * 🧑‍💻 作者/更新者：@s123104
- * 🔢 版本：v2.1.1
+ * 🔢 版本：v2.4.0
  * 📝 摘要：新增Move to Background自動點擊功能、優化終端內容監控、強化閒置時間檢測
  *
  * 🎯 完整功能重構清單：
@@ -51,7 +51,7 @@
    * 🎯 核心命名空間 - 避免全域污染
    */
   const CursorAutoAccept = {
-    version: '2.1.1',
+    version: '2.4.0',
     instance: null,
 
     // 公開 API
@@ -1645,7 +1645,7 @@
    */
   class CursorAutoAcceptController {
     constructor() {
-      this.version = '2.1.1';
+      this.version = '2.4.0';
       this.isRunning = false;
       this.monitorInterval = null;
       this.interval = 2000;
@@ -1694,7 +1694,7 @@
 
       this.setupEventHandlers();
       this.createControlPanel();
-      this.log('CursorAutoAccept v2.1.1 已初始化');
+      this.log('CursorAutoAccept v2.4.0 已初始化');
       this.logToPanel('⚠️ Try Again 功能暫時禁用 - 功能有bug正在修復中', 'warning');
     }
 
@@ -2545,11 +2545,12 @@
       // 版權區域
       const credits = this.createElement('div', 'aa-credits');
       const small = document.createElement('small');
-      small.textContent = 'Enhanced v2.0.6 by ';
+      small.textContent = 'Enhanced v2.4.0 by ';
       const link = document.createElement('a');
-      link.href = 'https://linkedin.com/in/ivalsaraj';
+      link.href = 'https://github.com/s123104';
       link.target = '_blank';
-      link.textContent = '@ivalsaraj';
+      link.textContent = 's123104';
+      link.title = 'GitHub: s123104';
       small.appendChild(link);
       credits.appendChild(small);
 
@@ -3757,7 +3758,7 @@
     }
 
     log(message) {
-      console.log(`[CursorAutoAccept v2.1.1] ${message}`);
+      console.log(`[CursorAutoAccept v2.4.0] ${message}`);
       this.logToPanel(message, 'info');
     }
 
@@ -3872,7 +3873,7 @@
   window.exportAnalytics = () => CursorAutoAccept.analytics.export();
   window.clearAnalytics = () => CursorAutoAccept.analytics.clear();
 
-  console.log('✅ CursorAutoAccept v2.1.1 已載入！');
+  console.log('✅ CursorAutoAccept v2.4.0 已載入！');
   console.log('🎛️ 可用命令: startAccept(), stopAccept(), acceptStatus(), debugAccept()');
   console.log('📊 分析命令: showAnalytics(), exportAnalytics(), clearAnalytics()');
   console.log('🔄 新功能: Move to Background 自動點擊 - 在控制面板設定中啟用');

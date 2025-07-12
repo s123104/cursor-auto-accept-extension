@@ -3,7 +3,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.3-blue.svg)](https://www.typescriptlang.org/)
 [![VS Code Extension](https://img.shields.io/badge/VS%20Code-Extension-green.svg)](https://code.visualstudio.com/)
-[![Version](https://img.shields.io/badge/Version-2.3.0-brightgreen.svg)](https://github.com/s123104/cursor-auto-accept-extension)
+[![Version](https://img.shields.io/badge/Version-2.4.0-brightgreen.svg)](https://github.com/s123104/cursor-auto-accept-extension)
 
 > 🚀 企業級 Cursor 自動接受擴展 - TypeScript 模組化架構，支援現代化測試框架與 VS Code Extension API
 
@@ -75,7 +75,7 @@ src/
 2. **或從 VSIX 安裝**
 
    ```bash
-   code --install-extension cursor-auto-accept-extension-2.3.0.vsix
+   code --install-extension cursor-auto-accept-extension-2.4.0.vsix
    ```
 
 3. **重新載入 VS Code**

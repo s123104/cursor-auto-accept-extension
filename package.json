@@ -2,7 +2,7 @@
   "name": "cursor-auto-accept-extension",
   "displayName": "Cursor Auto Accept Enhanced",
   "description": "企業級 Cursor 自動接受擴展 - TypeScript 模組化架構，支援現代化測試框架與 VS Code Extension API",
-  "version": "2.3.0",
+  "version": "2.4.0",
   "publisher": "s123104",
   "author": {
     "name": "s123104",

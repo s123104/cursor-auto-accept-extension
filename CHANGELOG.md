@@ -5,6 +5,98 @@ All notable changes to the Cursor Auto Accept Extension will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.0] - 2025-07-13
+
+### 🎯 Professional Open Source Project Enhancement
+
+This release focuses on professionalizing the project structure, updating version displays, and cleaning up development artifacts for a clean, production-ready open source project.
+
+### Enhanced
+
+#### 🏷️ Version Management
+
+- **Version Update**: Updated all version references to v2.4.0 across the project
+- **Consistent Versioning**: Synchronized version numbers in package.json, autoAccept.js, and all documentation
+- **Timestamp Updates**: Updated all timestamps to current Taiwan time (2025-07-13T02:46:52+08:00)
+
+#### 🎨 User Interface
+
+- **Control Panel Branding**: Updated version display in control panel to v2.4.0
+- **Author Attribution**: Updated author information to GitHub: s123104
+- **Hover Tooltips**: Added tooltip showing "GitHub: s123104" when hovering over author link
+- **Link Updates**: Updated all author links to point to GitHub profile
+
+#### 🧹 Project Cleanup
+
+- **Professional Structure**: Cleaned up development artifacts and test files
+- **Documentation Updates**: Updated README.md with complete manual script usage guide
+- **Feature Comparison**: Added comprehensive feature comparison table between VS Code extension and manual script
+- **File Organization**: Removed obsolete test files and development artifacts
+
+### Added
+
+#### 📚 Documentation
+
+- **Manual Script Guide**: Complete usage guide for autoAccept.js browser script
+- **Command Reference**: Comprehensive API command reference with examples
+- **Feature Comparison**: Detailed comparison table between TypeScript extension and JavaScript script
+- **Best Practices**: Usage recommendations and security considerations
+
+#### 🔧 Development
+
+- **Professional Standards**: Aligned project structure with open source best practices
+- **Clean Repository**: Removed unnecessary test files and development artifacts
+- **Consistent Branding**: Updated all references to maintain consistent project identity
+
+### Changed
+
+#### 🏗️ Project Structure
+
+- **Version Consistency**: All version references now point to v2.4.0
+- **Author Information**: Updated from original author to current maintainer (s123104)
+- **Link Updates**: All profile links now point to GitHub instead of LinkedIn
+- **Timestamp Synchronization**: All file timestamps updated to current time
+
+#### 📦 Packaging
+
+- **Clean Build**: Removed development test files from production builds
+- **Professional Presentation**: Project now presents as a clean, professional open source extension
+- **Consistent Metadata**: All package metadata aligned with current project state
+
+### Fixed
+
+#### 🔧 Maintenance
+
+- **Version Mismatches**: Resolved inconsistent version numbers across files
+- **Outdated References**: Updated all outdated author and version references
+- **Link Corrections**: Fixed all profile links to point to correct GitHub profile
+
+### Removed
+
+#### 🗑️ Cleanup
+
+- **Test Artifacts**: Removed development test files and HTML test pages
+- **Obsolete Files**: Cleaned up outdated development files
+- **Redundant Documentation**: Removed duplicate or outdated documentation files
+
+### Technical Details
+
+#### 📊 Project Status
+
+- **Version**: v2.4.0 (consistent across all files)
+- **Author**: s123104 (GitHub)
+- **Last Updated**: 2025-07-13T02:46:52+08:00
+- **Project State**: Professional open source project ready for distribution
+
+#### 🎯 Quality Assurance
+
+- **Consistent Branding**: All UI elements show correct version and author
+- **Professional Presentation**: Clean, organized project structure
+- **Documentation Complete**: Comprehensive guides for both VS Code extension and manual script usage
+- **Ready for Distribution**: Project meets professional open source standards
+
+---
+
 ## [2.3.0] - 2025-07-13
 
 ### 🎯 Quality Assurance & Testing Framework Completion

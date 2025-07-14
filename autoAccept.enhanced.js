@@ -1,8 +1,8 @@
 /**
- * 📦 模組：Cursor 自動接受增強版腳本 v2.1.1
+ * 📦 模組：Cursor 自動接受增強版腳本 v2.1.2
  * 🕒 最後更新：2025-07-06T20:30:00+08:00
  * 🧑‍💻 作者/更新者：@s123104
- * 🔢 版本：v2.1.1
+ * 🔢 版本：v2.1.2
  * 📝 摘要：新增Move to Background自動點擊功能、優化終端內容監控、強化閒置時間檢測
  *
  * 🎯 完整功能重構清單：
@@ -39,11 +39,11 @@
  */
 
 (function () {
-  'use strict';
+  "use strict";
 
   // 避免重複載入
   if (window.CursorAutoAccept) {
-    console.log('[CursorAutoAccept] 已載入，跳過重複初始化');
+    console.log("[CursorAutoAccept] 已載入，跳過重複初始化");
     return;
   }
 
@@ -51,7 +51,7 @@
    * 🎯 核心命名空間 - 避免全域污染
    */
   const CursorAutoAccept = {
-    version: '2.1.1',
+    version: "2.1.2",
     instance: null,
 
     // 公開 API
@@ -60,8 +60,8 @@
     status: () => CursorAutoAccept.instance?.status(),
 
     // 配置 API
-    configure: options => CursorAutoAccept.instance?.configure(options),
-    enableOnly: types => CursorAutoAccept.instance?.enableOnly(types),
+    configure: (options) => CursorAutoAccept.instance?.configure(options),
+    enableOnly: (types) => CursorAutoAccept.instance?.enableOnly(types),
 
     // 分析 API
     analytics: {
@@ -84,17 +84,17 @@
   const SELECTORS = {
     // 輸入框選擇器（多重備選）
     inputBox: [
-      'div.full-input-box',
-      '.composer-input-container',
+      "div.full-input-box",
+      ".composer-input-container",
       '[data-testid="composer-input"]',
-      '.input-container',
+      ".input-container",
     ],
 
     // 按鈕容器選擇器
     buttonContainers: [
-      '.composer-code-block-container',
-      '.composer-tool-former-message',
-      '.composer-diff-block',
+      ".composer-code-block-container",
+      ".composer-tool-former-message",
+      ".composer-diff-block",
       '[class*="code-block"]',
       '[class*="diff-container"]',
     ],
@@ -102,15 +102,15 @@
     // 檔名選擇器
     filename: [
       '.composer-code-block-filename span[style*="direction: ltr"]',
-      '.composer-code-block-filename span',
-      '.composer-code-block-filename',
+      ".composer-code-block-filename span",
+      ".composer-code-block-filename",
       '[class*="filename"]',
-      '[data-filename]',
+      "[data-filename]",
     ],
 
     // 狀態選擇器
     status: [
-      '.composer-code-block-status span',
+      ".composer-code-block-status span",
       'span[style*="color"]',
       '[class*="status"]',
       '[class*="diff-stat"]',
@@ -135,15 +135,15 @@
     tryAgainButtons: [
       'div[class*="anysphere-secondary-button"]',
       'div[class*="anysphere-text-button"]',
-      '.anysphere-secondary-button',
-      '.anysphere-text-button',
-      'div.anysphere-secondary-button',
-      'div.anysphere-text-button',
+      ".anysphere-secondary-button",
+      ".anysphere-text-button",
+      "div.anysphere-secondary-button",
+      "div.anysphere-text-button",
     ],
 
     // 下拉選單容器選擇器
     dropdownContainers: [
-      '.bg-dropdown-background',
+      ".bg-dropdown-background",
       '[class*="dropdown"]',
       '[class*="popup"]',
       '[style*="box-shadow"]',
@@ -160,12 +160,12 @@
 
     // 終端容器選擇器
     terminalContainers: [
-      '.terminal-instance-component',
-      '.xterm-screen',
-      '.terminal-wrapper',
-      '.composer-terminal-static-render',
+      ".terminal-instance-component",
+      ".xterm-screen",
+      ".terminal-wrapper",
+      ".composer-terminal-static-render",
       '[class*="terminal"]',
-      '.terminal-widget-container',
+      ".terminal-widget-container",
     ],
   };
 
@@ -174,52 +174,59 @@
    */
   const BUTTON_PATTERNS = {
     acceptAll: {
-      keywords: ['accept all', 'accept-all', 'acceptall'],
+      keywords: ["accept all", "accept-all", "acceptall"],
       priority: 1,
       extraTime: 5000,
     },
     accept: {
-      keywords: ['accept'],
+      keywords: ["accept"],
       priority: 2,
       extraTime: 0,
     },
     runCommand: {
-      keywords: ['run command', 'run-command'],
+      keywords: ["run command", "run-command"],
       priority: 3,
       extraTime: 2000,
     },
     run: {
-      keywords: ['run'],
+      keywords: ["run"],
       priority: 4,
       extraTime: 2000,
     },
     apply: {
-      keywords: ['apply'],
+      keywords: ["apply"],
       priority: 5,
       extraTime: 0,
     },
     execute: {
-      keywords: ['execute'],
+      keywords: ["execute"],
       priority: 6,
       extraTime: 2000,
     },
     resume: {
-      keywords: ['resume', 'continue'],
+      keywords: ["resume", "continue"],
       priority: 7,
       extraTime: 3000,
     },
     tryAgain: {
-      keywords: ['try again', 'try-again', 'tryagain', 'retry', '重新嘗試', '再試一次'],
+      keywords: [
+        "try again",
+        "try-again",
+        "tryagain",
+        "retry",
+        "重新嘗試",
+        "再試一次",
+      ],
       priority: 3,
       extraTime: 3000,
     },
     moveToBackground: {
       keywords: [
-        'move to background',
-        'move-to-background',
-        'movetobackground',
-        '移至背景',
-        '移到背景',
+        "move to background",
+        "move-to-background",
+        "movetobackground",
+        "移至背景",
+        "移到背景",
       ],
       priority: 8,
       extraTime: 1000,
@@ -261,7 +268,7 @@
     start() {
       if (this.isWatching) return;
 
-      this.observer = new MutationObserver(mutations => {
+      this.observer = new MutationObserver((mutations) => {
         this.handleMutations(mutations);
       });
 
@@ -272,20 +279,20 @@
         attributes: true,
         // 擴展屬性監視範圍
         attributeFilter: [
-          'class',
-          'style',
-          'data-message-index',
-          'disabled',
-          'hidden',
-          'aria-disabled',
-          'aria-hidden',
+          "class",
+          "style",
+          "data-message-index",
+          "disabled",
+          "hidden",
+          "aria-disabled",
+          "aria-hidden",
         ],
       };
 
       this.observer.observe(document.body, config);
       this.isWatching = true;
 
-      console.log('[DOMWatcher] 開始監視 DOM 變化');
+      console.log("[DOMWatcher] 開始監視 DOM 變化");
     }
 
     /**
@@ -303,7 +310,7 @@
       }
 
       this.isWatching = false;
-      console.log('[DOMWatcher] 停止監視 DOM 變化');
+      console.log("[DOMWatcher] 停止監視 DOM 變化");
     }
 
     /**
@@ -327,7 +334,7 @@
         }
 
         this.debounceTimer = setTimeout(() => {
-          this.eventManager.emit('dom-changed', { mutations });
+          this.eventManager.emit("dom-changed", { mutations });
         }, this.debounceDelay);
       }
     }
@@ -337,7 +344,7 @@
      */
     isRelevantMutation(mutation) {
       // 檢查新增的節點
-      if (mutation.type === 'childList') {
+      if (mutation.type === "childList") {
         for (const node of mutation.addedNodes) {
           if (node.nodeType === Node.ELEMENT_NODE) {
             // 檢查是否包含可能的按鈕或代碼區塊
@@ -349,11 +356,14 @@
       }
 
       // 檢查屬性變化
-      if (mutation.type === 'attributes') {
+      if (mutation.type === "attributes") {
         const target = mutation.target;
         if (target.nodeType === Node.ELEMENT_NODE) {
           // 檢查 class 或 style 變化是否可能影響按鈕可見性
-          if (mutation.attributeName === 'class' || mutation.attributeName === 'style') {
+          if (
+            mutation.attributeName === "class" ||
+            mutation.attributeName === "style"
+          ) {
             return this.hasRelevantContent(target);
           }
         }
@@ -366,34 +376,45 @@
      * 檢查節點是否包含相關內容
      */
     hasRelevantContent(element) {
-      const text = element.textContent?.toLowerCase() || '';
-      const className = element.className || '';
+      const text = element.textContent?.toLowerCase() || "";
+      const className = element.className || "";
 
       // 檢查是否包含按鈕關鍵字
-      const buttonKeywords = ['accept', 'run', 'apply', 'execute', 'resume'];
-      const hasButtonKeywords = buttonKeywords.some(keyword => text.includes(keyword));
+      const buttonKeywords = ["accept", "run", "apply", "execute", "resume"];
+      const hasButtonKeywords = buttonKeywords.some((keyword) =>
+        text.includes(keyword)
+      );
 
       // 檢查是否為代碼區塊相關
-      const codeBlockKeywords = ['composer', 'code-block', 'diff', 'button'];
-      const hasCodeBlockClass = codeBlockKeywords.some(keyword => className.includes(keyword));
+      const codeBlockKeywords = ["composer", "code-block", "diff", "button"];
+      const hasCodeBlockClass = codeBlockKeywords.some((keyword) =>
+        className.includes(keyword)
+      );
 
       // 檢查是否為 anysphere 按鈕（新增的 Resume 按鈕類型）
       const anysphereBtnKeywords = [
-        'anysphere-secondary-button',
-        'anysphere-text-button',
-        'bg-dropdown-background',
+        "anysphere-secondary-button",
+        "anysphere-text-button",
+        "bg-dropdown-background",
       ];
-      const hasAnysphereBtnClass = anysphereBtnKeywords.some(keyword =>
+      const hasAnysphereBtnClass = anysphereBtnKeywords.some((keyword) =>
         className.includes(keyword)
       );
 
       // 檢查是否為下拉選單容器
-      const dropdownKeywords = ['dropdown', 'popup', 'box-shadow'];
+      const dropdownKeywords = ["dropdown", "popup", "box-shadow"];
       const hasDropdownIndicator = dropdownKeywords.some(
-        keyword => className.includes(keyword) || element.style.cssText?.includes(keyword)
+        (keyword) =>
+          className.includes(keyword) ||
+          element.style.cssText?.includes(keyword)
       );
 
-      return hasButtonKeywords || hasCodeBlockClass || hasAnysphereBtnClass || hasDropdownIndicator;
+      return (
+        hasButtonKeywords ||
+        hasCodeBlockClass ||
+        hasAnysphereBtnClass ||
+        hasDropdownIndicator
+      );
     }
   }
 
@@ -454,7 +475,10 @@
       this.measurements.push({ ...this.currentWorkflow });
 
       // 更新實際自動時間統計
-      if (this.currentWorkflow.context.type === 'auto' && actualExecutionTime > 0) {
+      if (
+        this.currentWorkflow.context.type === "auto" &&
+        actualExecutionTime > 0
+      ) {
         this.updateActualAutoTime(actualExecutionTime);
       }
 
@@ -475,19 +499,21 @@
 
       const recentMeasurements = this.measurements.slice(-20); // 取最近 20 個
       const manualTimes = recentMeasurements
-        .filter(m => m.context.type === 'manual')
-        .map(m => m.totalTime);
+        .filter((m) => m.context.type === "manual")
+        .map((m) => m.totalTime);
 
       const autoTimes = recentMeasurements
-        .filter(m => m.context.type === 'auto')
-        .map(m => m.totalTime);
+        .filter((m) => m.context.type === "auto")
+        .map((m) => m.totalTime);
 
       if (manualTimes.length > 0) {
-        this.averageManualTime = manualTimes.reduce((a, b) => a + b) / manualTimes.length;
+        this.averageManualTime =
+          manualTimes.reduce((a, b) => a + b) / manualTimes.length;
       }
 
       if (autoTimes.length > 0) {
-        this.averageAutoTime = autoTimes.reduce((a, b) => a + b) / autoTimes.length;
+        this.averageAutoTime =
+          autoTimes.reduce((a, b) => a + b) / autoTimes.length;
       } else {
         // 如果沒有實際測量數據，使用更保守的估計
         this.averageAutoTime = Math.min(200, this.averageAutoTime);
@@ -502,7 +528,8 @@
 
       // 動態調整平均自動時間，給予較新測量值更高權重
       const weight = 0.3; // 30% 新值權重
-      this.averageAutoTime = this.averageAutoTime * (1 - weight) + actualTime * weight;
+      this.averageAutoTime =
+        this.averageAutoTime * (1 - weight) + actualTime * weight;
 
       // 保持合理的最小值，避免過於樂觀的估計
       this.averageAutoTime = Math.max(50, this.averageAutoTime); // 最小 50ms
@@ -514,12 +541,15 @@
     /**
      * 計算節省的時間（使用實際測量時間）
      */
-    calculateTimeSaved(buttonType = 'accept', actualExecutionTime = null) {
+    calculateTimeSaved(buttonType = "accept", actualExecutionTime = null) {
       const pattern = BUTTON_PATTERNS[buttonType] || BUTTON_PATTERNS.accept;
       const manualTime = this.averageManualTime + pattern.extraTime;
 
       // 如果提供了實際執行時間，優先使用實際時間
-      const autoTime = actualExecutionTime !== null ? actualExecutionTime : this.averageAutoTime;
+      const autoTime =
+        actualExecutionTime !== null
+          ? actualExecutionTime
+          : this.averageAutoTime;
 
       return Math.max(0, manualTime - autoTime);
     }
@@ -529,8 +559,12 @@
      */
     getStatistics() {
       const totalMeasurements = this.measurements.length;
-      const manualMeasurements = this.measurements.filter(m => m.context.type === 'manual');
-      const autoMeasurements = this.measurements.filter(m => m.context.type === 'auto');
+      const manualMeasurements = this.measurements.filter(
+        (m) => m.context.type === "manual"
+      );
+      const autoMeasurements = this.measurements.filter(
+        (m) => m.context.type === "auto"
+      );
 
       return {
         totalMeasurements,
@@ -540,7 +574,9 @@
         averageAutoTime: this.averageAutoTime,
         efficiency:
           this.averageManualTime > 0
-            ? ((this.averageManualTime - this.averageAutoTime) / this.averageManualTime) * 100
+            ? ((this.averageManualTime - this.averageAutoTime) /
+                this.averageManualTime) *
+              100
             : 0,
       };
     }
@@ -563,14 +599,19 @@
         },
       };
 
-      this.storageKey = 'cursor-auto-accept-v2-data';
+      this.storageKey = "cursor-auto-accept-v2-data";
       this.loadFromStorage();
     }
 
     /**
      * 記錄檔案接受（使用實際測量時間）
      */
-    recordFileAcceptance(fileInfo, buttonType, timeSaved, actualExecutionTime = null) {
+    recordFileAcceptance(
+      fileInfo,
+      buttonType,
+      timeSaved,
+      actualExecutionTime = null
+    ) {
       const { filename, addedLines = 0, deletedLines = 0 } = fileInfo;
       const timestamp = new Date();
 
@@ -581,11 +622,16 @@
         existing.lastAccepted = timestamp;
         existing.totalAdded += addedLines;
         existing.totalDeleted += deletedLines;
-        existing.buttonTypes.set(buttonType, (existing.buttonTypes.get(buttonType) || 0) + 1);
+        existing.buttonTypes.set(
+          buttonType,
+          (existing.buttonTypes.get(buttonType) || 0) + 1
+        );
         // 追蹤實際執行時間
         if (actualExecutionTime !== null) {
-          existing.totalExecutionTime = (existing.totalExecutionTime || 0) + actualExecutionTime;
-          existing.averageExecutionTime = existing.totalExecutionTime / existing.acceptCount;
+          existing.totalExecutionTime =
+            (existing.totalExecutionTime || 0) + actualExecutionTime;
+          existing.averageExecutionTime =
+            existing.totalExecutionTime / existing.acceptCount;
         }
       } else {
         this.data.files.set(filename, {
@@ -612,7 +658,10 @@
       });
 
       // 更新按鈕類型統計
-      this.data.buttonTypes.set(buttonType, (this.data.buttonTypes.get(buttonType) || 0) + 1);
+      this.data.buttonTypes.set(
+        buttonType,
+        (this.data.buttonTypes.get(buttonType) || 0) + 1
+      );
 
       // 更新總計（使用實際測量時間）
       this.data.totalAccepts++;
@@ -633,7 +682,7 @@
 
       // 更新會話統計 - 即使沒有檔案信息（包含實際執行時間）
       this.data.sessions.push({
-        filename: '未知檔案',
+        filename: "未知檔案",
         addedLines: 0,
         deletedLines: 0,
         timestamp,
@@ -643,7 +692,10 @@
       });
 
       // 更新按鈕類型統計
-      this.data.buttonTypes.set(buttonType, (this.data.buttonTypes.get(buttonType) || 0) + 1);
+      this.data.buttonTypes.set(
+        buttonType,
+        (this.data.buttonTypes.get(buttonType) || 0) + 1
+      );
 
       // 更新總計（使用實際測量時間）
       this.data.totalAccepts++;
@@ -652,7 +704,7 @@
         timestamp,
         buttonType,
         timeSaved,
-        filename: '未知檔案',
+        filename: "未知檔案",
         actualExecutionTime: actualExecutionTime || 0,
       });
 
@@ -677,13 +729,13 @@
           totalAccepts: this.data.totalAccepts,
           sessionStart: this.data.sessionStart,
           roiData: this.data.roiData,
-          version: '2.0.0',
+          version: "2.0.0",
           savedAt: new Date(),
         };
 
         localStorage.setItem(this.storageKey, JSON.stringify(dataToSave));
       } catch (error) {
-        console.warn('[AnalyticsManager] 儲存失敗:', error);
+        console.warn("[AnalyticsManager] 儲存失敗:", error);
       }
     }
 
@@ -711,15 +763,17 @@
         this.data.buttonTypes = new Map(data.buttonTypes || []);
         this.data.sessions = data.sessions || [];
         this.data.totalAccepts = data.totalAccepts || 0;
-        this.data.sessionStart = data.sessionStart ? new Date(data.sessionStart) : new Date();
+        this.data.sessionStart = data.sessionStart
+          ? new Date(data.sessionStart)
+          : new Date();
         this.data.roiData = data.roiData || {
           totalTimeSaved: 0,
           workflowSessions: [],
         };
 
-        console.log('[AnalyticsManager] 成功載入儲存資料');
+        console.log("[AnalyticsManager] 成功載入儲存資料");
       } catch (error) {
-        console.warn('[AnalyticsManager] 載入失敗:', error);
+        console.warn("[AnalyticsManager] 載入失敗:", error);
       }
     }
 
@@ -786,7 +840,7 @@
 
       // 狀態追蹤
       this.isWatching = false;
-      this.lastContentHash = '';
+      this.lastContentHash = "";
       this.lastChangeTime = Date.now();
       this.lastButtonsState = { hasMove: false, hasSkip: false };
       this.lastButtonsStateTime = Date.now();
@@ -818,7 +872,7 @@
       this.startContentWatcher();
       this.startIdleChecker();
 
-      console.log('[BackgroundMover] 已啟動 Move to Background 自動點擊功能');
+      console.log("[BackgroundMover] 已啟動 Move to Background 自動點擊功能");
     }
 
     /**
@@ -831,7 +885,7 @@
       this.stopContentWatcher();
       this.stopIdleChecker();
 
-      console.log('[BackgroundMover] 已停止 Move to Background 自動點擊功能');
+      console.log("[BackgroundMover] 已停止 Move to Background 自動點擊功能");
     }
 
     /**
@@ -840,7 +894,7 @@
     startContentWatcher() {
       const terminalContainer = this.findTerminalContainer();
       if (!terminalContainer) {
-        console.warn('[BackgroundMover] 找不到終端容器，將監控整個 document');
+        console.warn("[BackgroundMover] 找不到終端容器，將監控整個 document");
         this.observeContainer(document.body);
         return;
       }
@@ -852,7 +906,7 @@
      * 設置 MutationObserver 監控容器
      */
     observeContainer(container) {
-      this.contentObserver = new MutationObserver(mutations => {
+      this.contentObserver = new MutationObserver((mutations) => {
         this.handleContentMutations(mutations);
       });
 
@@ -862,13 +916,19 @@
         subtree: true, // 監控所有子樹
         characterData: true, // 監控文字內容變化
         attributes: true, // 監控屬性變化（用於按鈕狀態檢測）
-        attributeFilter: ['class', 'style', 'disabled', 'aria-disabled', 'hidden'], // 只監控特定屬性
+        attributeFilter: [
+          "class",
+          "style",
+          "disabled",
+          "aria-disabled",
+          "hidden",
+        ], // 只監控特定屬性
         characterDataOldValue: false, // 不需要舊值，提升效能
         attributeOldValue: false, // 不需要舊值，提升效能
       };
 
       this.contentObserver.observe(container, observerConfig);
-      console.log('[BackgroundMover] 已開始監控終端內容和按鈕狀態變化');
+      console.log("[BackgroundMover] 已開始監控終端內容和按鈕狀態變化");
     }
 
     /**
@@ -877,8 +937,9 @@
     handleContentMutations(mutations) {
       // 檢查是否為相關的內容變化或按鈕狀態變化
       const hasRelevantChanges = mutations.some(
-        mutation =>
-          this.isRelevantContentMutation(mutation) || this.isRelevantButtonMutation(mutation)
+        (mutation) =>
+          this.isRelevantContentMutation(mutation) ||
+          this.isRelevantButtonMutation(mutation)
       );
 
       if (!hasRelevantChanges) return;
@@ -899,16 +960,16 @@
      */
     isRelevantContentMutation(mutation) {
       // 只關注可能影響終端輸出的變化
-      if (mutation.type === 'characterData') {
+      if (mutation.type === "characterData") {
         return true; // 文字內容變化總是相關的
       }
 
-      if (mutation.type === 'childList') {
+      if (mutation.type === "childList") {
         // 檢查新增或移除的節點是否包含文字內容
         const addedNodes = Array.from(mutation.addedNodes);
         const removedNodes = Array.from(mutation.removedNodes);
 
-        return [...addedNodes, ...removedNodes].some(node => {
+        return [...addedNodes, ...removedNodes].some((node) => {
           if (node.nodeType === Node.TEXT_NODE) {
             return node.textContent.trim().length > 0;
           }
@@ -926,7 +987,7 @@
      * 判斷是否為相關的按鈕變化
      */
     isRelevantButtonMutation(mutation) {
-      if (mutation.type === 'attributes') {
+      if (mutation.type === "attributes") {
         const target = mutation.target;
         if (target.nodeType === Node.ELEMENT_NODE) {
           // 檢查是否為按鈕相關元素的屬性變化
@@ -934,11 +995,11 @@
         }
       }
 
-      if (mutation.type === 'childList') {
+      if (mutation.type === "childList") {
         const addedNodes = Array.from(mutation.addedNodes);
         const removedNodes = Array.from(mutation.removedNodes);
 
-        return [...addedNodes, ...removedNodes].some(node => {
+        return [...addedNodes, ...removedNodes].some((node) => {
           if (node.nodeType === Node.ELEMENT_NODE) {
             // 檢查新增或移除的節點是否包含按鈕
             return this.containsRelevantButtons(node);
@@ -954,19 +1015,23 @@
      * 檢查元素是否為按鈕相關
      */
     isButtonRelatedElement(element) {
-      const text = element.textContent?.trim() || '';
-      const className = element.className || '';
+      const text = element.textContent?.trim() || "";
+      const className = element.className || "";
 
       // 檢查是否包含相關按鈕文字
-      if (text.includes('Move to background') || text.includes('Skip') || text === '⇧⌫ Skip') {
+      if (
+        text.includes("Move to background") ||
+        text.includes("Skip") ||
+        text === "⇧⌫ Skip"
+      ) {
         return true;
       }
 
       // 檢查是否為按鈕相關的CSS類別
       if (
-        className.includes('anysphere-text-button') ||
-        className.includes('button') ||
-        className.includes('flex-nowrap')
+        className.includes("anysphere-text-button") ||
+        className.includes("button") ||
+        className.includes("flex-nowrap")
       ) {
         return true;
       }
@@ -981,17 +1046,20 @@
       if (!element.querySelector) return false;
 
       // 搜尋Move to background按鈕
-      const moveButtons = element.querySelectorAll('*');
+      const moveButtons = element.querySelectorAll("*");
       for (const btn of moveButtons) {
-        if (btn.textContent?.includes('Move to background')) {
+        if (btn.textContent?.includes("Move to background")) {
           return true;
         }
       }
 
       // 搜尋Skip按鈕
-      const skipButtons = element.querySelectorAll('*');
+      const skipButtons = element.querySelectorAll("*");
       for (const btn of skipButtons) {
-        if (btn.textContent?.includes('⇧⌫ Skip') || btn.textContent?.includes('Skip')) {
+        if (
+          btn.textContent?.includes("⇧⌫ Skip") ||
+          btn.textContent?.includes("Skip")
+        ) {
           return true;
         }
       }
@@ -1007,7 +1075,10 @@
       const currentButtonsState = this.getCurrentButtonsState();
 
       let hasContentChange = currentHash !== this.lastContentHash;
-      let hasButtonsChange = !this.buttonsStateEqual(currentButtonsState, this.lastButtonsState);
+      let hasButtonsChange = !this.buttonsStateEqual(
+        currentButtonsState,
+        this.lastButtonsState
+      );
 
       if (hasContentChange || hasButtonsChange) {
         // 內容或按鈕狀態有變化，重設計時器
@@ -1015,14 +1086,17 @@
           this.lastContentHash = currentHash;
           this.lastChangeTime = Date.now();
           this.stats.contentChanges++;
-          console.log('[BackgroundMover] 檢測到內容變化，重設閒置計時器');
+          console.log("[BackgroundMover] 檢測到內容變化，重設閒置計時器");
         }
 
         if (hasButtonsChange) {
           this.lastButtonsState = currentButtonsState;
           this.lastButtonsStateTime = Date.now();
           this.stats.buttonsDetected++;
-          console.log('[BackgroundMover] 檢測到按鈕狀態變化:', currentButtonsState);
+          console.log(
+            "[BackgroundMover] 檢測到按鈕狀態變化:",
+            currentButtonsState
+          );
         }
       }
     }
@@ -1032,10 +1106,10 @@
      */
     getCurrentContentHash() {
       const terminalContainer = this.findTerminalContainer();
-      if (!terminalContainer) return '';
+      if (!terminalContainer) return "";
 
       // 獲取終端的可見文字內容
-      const content = terminalContainer.textContent || '';
+      const content = terminalContainer.textContent || "";
 
       // 簡單的雜湊函數
       return this.simpleHash(content.trim());
@@ -1049,10 +1123,14 @@
       const skipButton = this.findSkipButton();
 
       return {
-        hasMove: !!moveButton && this.elementFinder.isElementVisible(moveButton),
-        hasSkip: !!skipButton && this.elementFinder.isElementVisible(skipButton),
+        hasMove:
+          !!moveButton && this.elementFinder.isElementVisible(moveButton),
+        hasSkip:
+          !!skipButton && this.elementFinder.isElementVisible(skipButton),
         moveClickable: moveButton ? this.isButtonClickable(moveButton) : false,
-        skipVisible: skipButton ? this.elementFinder.isElementVisible(skipButton) : false,
+        skipVisible: skipButton
+          ? this.elementFinder.isElementVisible(skipButton)
+          : false,
       };
     }
 
@@ -1086,9 +1164,9 @@
 
       if (shouldClick) {
         this.stats.skipDetections++;
-        console.log('[BackgroundMover] 檢測到條件滿足：Move和Skip按鈕同時存在');
+        console.log("[BackgroundMover] 檢測到條件滿足：Move和Skip按鈕同時存在");
       } else {
-        console.log('[BackgroundMover] 條件不滿足:', {
+        console.log("[BackgroundMover] 條件不滿足:", {
           hasMove: buttonsState.hasMove,
           hasSkip: buttonsState.hasSkip,
           moveClickable: buttonsState.moveClickable,
@@ -1143,7 +1221,10 @@
       const currentButtonsState = this.getCurrentButtonsState();
 
       // 只有當兩個條件都滿足時才嘗試點擊
-      if (minIdleTime >= this.config.maxIdleTime && this.shouldAttemptClick(currentButtonsState)) {
+      if (
+        minIdleTime >= this.config.maxIdleTime &&
+        this.shouldAttemptClick(currentButtonsState)
+      ) {
         this.attemptMoveToBackground();
       }
     }
@@ -1157,17 +1238,17 @@
       const skipButton = this.findSkipButton();
 
       if (!moveButton) {
-        console.log('[BackgroundMover] 未找到 Move to Background 按鈕');
+        console.log("[BackgroundMover] 未找到 Move to Background 按鈕");
         return;
       }
 
       if (!skipButton) {
-        console.log('[BackgroundMover] 未找到 Skip 按鈕，不執行自動點擊');
+        console.log("[BackgroundMover] 未找到 Skip 按鈕，不執行自動點擊");
         return;
       }
 
       if (!this.isButtonClickable(moveButton)) {
-        console.log('[BackgroundMover] Move to Background 按鈕不可點擊');
+        console.log("[BackgroundMover] Move to Background 按鈕不可點擊");
         return;
       }
 
@@ -1177,7 +1258,7 @@
           !this.elementFinder.isElementVisible(moveButton) ||
           !this.elementFinder.isElementVisible(skipButton)
         ) {
-          console.log('[BackgroundMover] 按鈕已不可見，取消點擊');
+          console.log("[BackgroundMover] 按鈕已不可見，取消點擊");
           return;
         }
 
@@ -1194,17 +1275,23 @@
         this.lastChangeTime = now;
         this.lastButtonsStateTime = now;
 
-        console.log('[BackgroundMover] ✅ 已自動點擊 Move to Background 按鈕（Skip按鈕同時存在）');
+        console.log(
+          "[BackgroundMover] ✅ 已自動點擊 Move to Background 按鈕（Skip按鈕同時存在）"
+        );
 
         // 發送事件通知
-        this.eventManager.emit('move-to-background-clicked', {
+        this.eventManager.emit("move-to-background-clicked", {
           timestamp: new Date(),
-          idleTime: now - Math.min(this.lastChangeTime, this.lastButtonsStateTime),
+          idleTime:
+            now - Math.min(this.lastChangeTime, this.lastButtonsStateTime),
           totalMoves: this.stats.totalMoves,
           skipButtonPresent: true,
         });
       } catch (error) {
-        console.error('[BackgroundMover] 點擊 Move to Background 按鈕失敗:', error);
+        console.error(
+          "[BackgroundMover] 點擊 Move to Background 按鈕失敗:",
+          error
+        );
       }
     }
 
@@ -1226,7 +1313,7 @@
      */
     findMoveToBackgroundButton() {
       // 策略 1: 使用文字內容尋找
-      const textBasedButton = this.findButtonByText('Move to background');
+      const textBasedButton = this.findButtonByText("Move to background");
       if (textBasedButton) return textBasedButton;
 
       // 策略 2: 深度搜尋
@@ -1238,11 +1325,11 @@
      */
     findSkipButton() {
       // 策略 1: 使用完整文字搜尋
-      let skipButton = this.findButtonByText('⇧⌫ Skip');
+      let skipButton = this.findButtonByText("⇧⌫ Skip");
       if (skipButton) return skipButton;
 
       // 策略 2: 使用部分文字搜尋
-      skipButton = this.findButtonByText('Skip');
+      skipButton = this.findButtonByText("Skip");
       if (skipButton) return skipButton;
 
       // 策略 3: 使用CSS選擇器搜尋
@@ -1267,14 +1354,18 @@
 
       for (const selector of selectors) {
         try {
-          const elements = document.querySelectorAll('*');
+          const elements = document.querySelectorAll("*");
           for (const element of elements) {
             if (
-              element.textContent?.includes('⇧⌫ Skip') ||
-              element.textContent?.trim() === 'Skip'
+              element.textContent?.includes("⇧⌫ Skip") ||
+              element.textContent?.trim() === "Skip"
             ) {
               if (this.elementFinder.isElementVisible(element)) {
-                return element.closest('[class*="button"], [onclick], [role="button"]') || element;
+                return (
+                  element.closest(
+                    '[class*="button"], [onclick], [role="button"]'
+                  ) || element
+                );
               }
             }
           }
@@ -1298,16 +1389,17 @@
           '[class*="flex"]',
           '[style*="font-size: 11px"]',
           '[style*="line-height: 16px"]',
-        ].join(', ')
+        ].join(", ")
       );
 
       for (const container of containers) {
-        const spans = container.querySelectorAll('span');
+        const spans = container.querySelectorAll("span");
         for (const span of spans) {
           const text = span.textContent?.trim();
-          if (text === '⇧⌫ Skip' || text === 'Skip') {
+          if (text === "⇧⌫ Skip" || text === "Skip") {
             const button =
-              span.closest('[class*="button"], [onclick], [role="button"]') || span.parentElement;
+              span.closest('[class*="button"], [onclick], [role="button"]') ||
+              span.parentElement;
             if (button && this.elementFinder.isElementVisible(button)) {
               return button;
             }
@@ -1348,10 +1440,10 @@
       );
 
       for (const container of containers) {
-        const spans = container.querySelectorAll('span');
+        const spans = container.querySelectorAll("span");
         for (const span of spans) {
           if (
-            span.textContent.trim() === 'Move to background' &&
+            span.textContent.trim() === "Move to background" &&
             this.elementFinder.isElementVisible(span.parentElement)
           ) {
             return span.parentElement;
@@ -1370,8 +1462,8 @@
         this.elementFinder.isElementVisible(button) &&
         this.elementFinder.isElementClickable(button) &&
         !button.disabled &&
-        !button.hasAttribute('disabled') &&
-        button.getAttribute('aria-disabled') !== 'true'
+        !button.hasAttribute("disabled") &&
+        button.getAttribute("aria-disabled") !== "true"
       );
     }
 
@@ -1408,7 +1500,8 @@
 
       const currentIdleTime = Date.now() - this.lastChangeTime;
       this.stats.averageIdleTime =
-        (this.stats.averageIdleTime * (this.stats.totalMoves - 1) + currentIdleTime) /
+        (this.stats.averageIdleTime * (this.stats.totalMoves - 1) +
+          currentIdleTime) /
         this.stats.totalMoves;
     }
 
@@ -1456,7 +1549,8 @@
      * 使用多重選擇器策略查找元素
      */
     findElement(selectors, context = document) {
-      const cacheKey = selectors.join('|') + (context !== document ? context.className : '');
+      const cacheKey =
+        selectors.join("|") + (context !== document ? context.className : "");
       const cached = this.cache.get(cacheKey);
 
       if (cached && Date.now() - cached.timestamp < this.cacheTimeout) {
@@ -1493,7 +1587,9 @@
       for (const selector of selectors) {
         try {
           const found = context.querySelectorAll(selector);
-          elements.push(...Array.from(found).filter(el => this.isElementVisible(el)));
+          elements.push(
+            ...Array.from(found).filter((el) => this.isElementVisible(el))
+          );
         } catch (error) {
           console.warn(`[ElementFinder] 選擇器失效: ${selector}`, error);
         }
@@ -1510,10 +1606,10 @@
 
       // 使用多種策略查找可點擊元素
       const clickableSelectors = [
-        'button',
+        "button",
         'div[role="button"]',
         'span[role="button"]',
-        'div[onclick]',
+        "div[onclick]",
         'div[style*="cursor: pointer"]',
         'div[style*="cursor:pointer"]',
         '[class*="button"]',
@@ -1542,40 +1638,40 @@
      * 識別按鈕類型
      */
     identifyButtonType(element) {
-      const text = element.textContent?.toLowerCase().trim() || '';
-      const ariaLabel = element.getAttribute('aria-label')?.toLowerCase() || '';
-      const title = element.getAttribute('title')?.toLowerCase() || '';
-      const className = element.className?.toLowerCase() || '';
+      const text = element.textContent?.toLowerCase().trim() || "";
+      const ariaLabel = element.getAttribute("aria-label")?.toLowerCase() || "";
+      const title = element.getAttribute("title")?.toLowerCase() || "";
+      const className = element.className?.toLowerCase() || "";
       const searchText = `${text} ${ariaLabel} ${title} ${className}`;
 
       // 特殊處理 Resume 按鈕（彈出式下拉選單）
-      if (text === 'resume' || text.includes('resume')) {
+      if (text === "resume" || text.includes("resume")) {
         // 檢查是否為 anysphere 按鈕類型
         if (
-          className.includes('anysphere-secondary-button') ||
-          className.includes('anysphere-text-button') ||
-          element.closest('.anysphere-secondary-button') ||
-          element.closest('.anysphere-text-button')
+          className.includes("anysphere-secondary-button") ||
+          className.includes("anysphere-text-button") ||
+          element.closest(".anysphere-secondary-button") ||
+          element.closest(".anysphere-text-button")
         ) {
-          return 'resume';
+          return "resume";
         }
       }
 
       // 特殊處理 Try Again 按鈕（彈出式下拉選單）
       if (
-        text === 'try again' ||
-        text.includes('try again') ||
-        text === 'retry' ||
-        text.includes('retry')
+        text === "try again" ||
+        text.includes("try again") ||
+        text === "retry" ||
+        text.includes("retry")
       ) {
         // 檢查是否為 anysphere 按鈕類型
         if (
-          className.includes('anysphere-secondary-button') ||
-          className.includes('anysphere-text-button') ||
-          element.closest('.anysphere-secondary-button') ||
-          element.closest('.anysphere-text-button')
+          className.includes("anysphere-secondary-button") ||
+          className.includes("anysphere-text-button") ||
+          element.closest(".anysphere-secondary-button") ||
+          element.closest(".anysphere-text-button")
         ) {
-          return 'tryAgain';
+          return "tryAgain";
         }
       }
 
@@ -1600,8 +1696,8 @@
       const rect = element.getBoundingClientRect();
 
       return (
-        style.display !== 'none' &&
-        style.visibility !== 'hidden' &&
+        style.display !== "none" &&
+        style.visibility !== "hidden" &&
         parseFloat(style.opacity) > 0.1 &&
         rect.width > 0 &&
         rect.height > 0
@@ -1616,7 +1712,9 @@
 
       const style = window.getComputedStyle(element);
       return (
-        style.pointerEvents !== 'none' && !element.disabled && !element.hasAttribute('disabled')
+        style.pointerEvents !== "none" &&
+        !element.disabled &&
+        !element.hasAttribute("disabled")
       );
     }
 
@@ -1645,7 +1743,7 @@
    */
   class CursorAutoAcceptController {
     constructor() {
-      this.version = '2.1.1';
+      this.version = "2.1.2";
       this.isRunning = false;
       this.monitorInterval = null;
       this.interval = 2000;
@@ -1669,11 +1767,14 @@
       this.domWatcher = new DOMWatcher(this.eventManager);
       this.roiTimer = new ROITimer();
       this.analytics = new AnalyticsManager();
-      this.backgroundMover = new BackgroundMover(this.eventManager, this.elementFinder);
+      this.backgroundMover = new BackgroundMover(
+        this.eventManager,
+        this.elementFinder
+      );
 
       // 控制面板
       this.controlPanel = null;
-      this.currentTab = 'main';
+      this.currentTab = "main";
       this.isDragging = false;
       this.dragOffset = { x: 0, y: 0 };
       this.loggedMessages = new Set();
@@ -1694,12 +1795,15 @@
 
       this.setupEventHandlers();
       this.createControlPanel();
-      this.log('CursorAutoAccept v2.1.1 已初始化');
-      this.logToPanel('⚠️ Try Again 功能暫時禁用 - 功能有bug正在修復中', 'warning');
+      this.log("CursorAutoAccept v2.1.2 已初始化");
+      this.logToPanel(
+        "⚠️ Try Again 功能暫時禁用 - 功能有bug正在修復中",
+        "warning"
+      );
     }
 
     setupEventHandlers() {
-      this.eventManager.on('dom-changed', () => {
+      this.eventManager.on("dom-changed", () => {
         if (this.isRunning) {
           this.checkAndClick();
         }
@@ -1718,7 +1822,10 @@
       }
 
       // 清理過期的無效點擊記錄
-      for (const [elementKey, clickHistory] of this.ineffectiveClicks.entries()) {
+      for (const [
+        elementKey,
+        clickHistory,
+      ] of this.ineffectiveClicks.entries()) {
         if (now - clickHistory.firstAttempt > this.maxRetryDuration) {
           this.ineffectiveClicks.delete(elementKey);
         }
@@ -1733,7 +1840,8 @@
       const pattern = BUTTON_PATTERNS[buttonType] || BUTTON_PATTERNS.accept;
 
       // 估算手動操作時間（基於按鈕類型的額外時間）
-      const estimatedManualTime = this.roiTimer.averageManualTime + pattern.extraTime;
+      const estimatedManualTime =
+        this.roiTimer.averageManualTime + pattern.extraTime;
 
       // 實際自動化時間包含偵測、驗證和點擊的完整時間
       const actualAutoTime = actualExecutionTime;
@@ -1756,7 +1864,7 @@
         const stillExists = this.elementFinder.isElementValid(element);
 
         // 如果 Try Again 按鈕仍然存在，表示點擊無效
-        if (stillExists && buttonType === 'tryAgain') {
+        if (stillExists && buttonType === "tryAgain") {
           const now = Date.now();
 
           if (this.ineffectiveClicks.has(elementKey)) {
@@ -1774,16 +1882,19 @@
             });
           }
 
-          this.logToPanel(`檢測到 ${buttonType} 按鈕點擊無效，將暫停重試`, 'warning');
+          this.logToPanel(
+            `檢測到 ${buttonType} 按鈕點擊無效，將暫停重試`,
+            "warning"
+          );
         } else {
           // 點擊有效，清除無效記錄
           if (this.ineffectiveClicks.has(elementKey)) {
             this.ineffectiveClicks.delete(elementKey);
-            this.logToPanel(`${buttonType} 按鈕點擊有效，恢復正常操作`, 'info');
+            this.logToPanel(`${buttonType} 按鈕點擊有效，恢復正常操作`, "info");
           }
         }
       } catch (error) {
-        this.logToPanel(`驗證點擊效果時出錯：${error.message}`, 'error');
+        this.logToPanel(`驗證點擊效果時出錯：${error.message}`, "error");
       }
     }
 
@@ -1794,12 +1905,14 @@
       if (!element) return null;
 
       // 使用元素的多種屬性來創建唯一標識
-      const text = element.textContent?.trim() || '';
-      const className = element.className || '';
-      const tagName = element.tagName || '';
+      const text = element.textContent?.trim() || "";
+      const className = element.className || "";
+      const tagName = element.tagName || "";
       const position = this.getElementPosition(element);
 
-      return `${tagName}-${className}-${text.substring(0, 20)}-${position.x}-${position.y}`;
+      return `${tagName}-${className}-${text.substring(0, 20)}-${position.x}-${
+        position.y
+      }`;
     }
 
     /**
@@ -1837,7 +1950,10 @@
       if (elementKey && this.ineffectiveClicks.has(elementKey)) {
         const clickHistory = this.ineffectiveClicks.get(elementKey);
         // 如果在最大重試時間內且點擊無效，則跳過
-        if (now - clickHistory.firstAttempt < this.maxRetryDuration && clickHistory.isIneffective) {
+        if (
+          now - clickHistory.firstAttempt < this.maxRetryDuration &&
+          clickHistory.isIneffective
+        ) {
           return false;
         }
         // 如果超過最大重試時間，清除記錄並允許重試
@@ -1865,8 +1981,8 @@
       // 檢查是否被禁用
       if (
         element.disabled ||
-        element.hasAttribute('disabled') ||
-        element.getAttribute('aria-disabled') === 'true'
+        element.hasAttribute("disabled") ||
+        element.getAttribute("aria-disabled") === "true"
       ) {
         return false;
       }
@@ -1890,8 +2006,9 @@
       let searchDepth = 0;
 
       while (currentElement && searchDepth < 5) {
-        const buttonsInElement = this.elementFinder.findButtonsBySemantics(currentElement);
-        buttonsInElement.forEach(b => {
+        const buttonsInElement =
+          this.elementFinder.findButtonsBySemantics(currentElement);
+        buttonsInElement.forEach((b) => {
           if (!processedElements.has(b.element)) {
             buttons.push(b.element);
             processedElements.add(b.element);
@@ -1904,8 +2021,10 @@
 
       // 搜尋 Resume 連結
       if (this.config.enableResume) {
-        const resumeElements = this.elementFinder.findElements(SELECTORS.resumeLinks);
-        resumeElements.forEach(element => {
+        const resumeElements = this.elementFinder.findElements(
+          SELECTORS.resumeLinks
+        );
+        resumeElements.forEach((element) => {
           if (!processedElements.has(element)) {
             buttons.push(element);
             processedElements.add(element);
@@ -1914,7 +2033,7 @@
 
         // 搜尋 Resume 按鈕（彈出式下拉選單）
         const resumeButtons = this.findResumeButtons();
-        resumeButtons.forEach(btn => {
+        resumeButtons.forEach((btn) => {
           if (!processedElements.has(btn)) {
             buttons.push(btn);
             processedElements.add(btn);
@@ -1925,7 +2044,7 @@
       // 搜尋 Try Again 按鈕
       if (this.config.enableTryAgain) {
         const tryAgainButtons = this.findTryAgainButtons();
-        tryAgainButtons.forEach(btn => {
+        tryAgainButtons.forEach((btn) => {
           if (!processedElements.has(btn)) {
             buttons.push(btn);
             processedElements.add(btn);
@@ -1945,7 +2064,10 @@
         for (const button of buttons) {
           const buttonType = this.elementFinder.identifyButtonType(button);
 
-          if (this.shouldClickButton(buttonType) && this.canClickElement(button, buttonType)) {
+          if (
+            this.shouldClickButton(buttonType) &&
+            this.canClickElement(button, buttonType)
+          ) {
             this.clickElement(button, buttonType);
             break; // 只點擊一個按鈕後就退出
           }
@@ -1986,7 +2108,7 @@
         this.processedElements.add(element);
 
         const startTime = performance.now();
-        this.roiTimer.startWorkflow({ type: 'auto', buttonType });
+        this.roiTimer.startWorkflow({ type: "auto", buttonType });
 
         // 提取檔案資訊
         const fileInfo = this.extractFileInfo(element);
@@ -1995,10 +2117,13 @@
         element.click();
 
         // 日誌記錄點擊事件
-        this.logToPanel(`點擊 ${buttonType} 按鈕: ${fileInfo?.filename || '未知檔案'}`, 'info');
+        this.logToPanel(
+          `點擊 ${buttonType} 按鈕: ${fileInfo?.filename || "未知檔案"}`,
+          "info"
+        );
 
         // 延遲驗證點擊效果，特別針對 Try Again 按鈕
-        if (buttonType === 'tryAgain' && elementKey) {
+        if (buttonType === "tryAgain" && elementKey) {
           setTimeout(() => {
             this.validateClickEffectiveness(elementKey, element, buttonType);
           }, this.clickValidationTimeout);
@@ -2021,28 +2146,39 @@
 
         // 記錄分析 - 使用實際測量時間進行精確記錄
         if (fileInfo) {
-          this.analytics.recordFileAcceptance(fileInfo, buttonType, timeSaved, actualTime);
+          this.analytics.recordFileAcceptance(
+            fileInfo,
+            buttonType,
+            timeSaved,
+            actualTime
+          );
         } else {
           // 即使沒有檔案信息，也要記錄基本統計和實際執行時間
-          this.analytics.recordBasicAcceptance(buttonType, timeSaved, actualTime);
+          this.analytics.recordBasicAcceptance(
+            buttonType,
+            timeSaved,
+            actualTime
+          );
         }
 
         this.totalClicks++;
         this.updatePanelStatus();
         this.logToPanel(
-          `✓ ${buttonType}: ${fileInfo?.filename || '未知檔案'} (${actualTime.toFixed(1)}ms)`,
-          'info'
+          `✓ ${buttonType}: ${
+            fileInfo?.filename || "未知檔案"
+          } (${actualTime.toFixed(1)}ms)`,
+          "info"
         );
 
         // 更新分析內容顯示
-        if (this.currentTab === 'analytics' || this.currentTab === 'roi') {
+        if (this.currentTab === "analytics" || this.currentTab === "roi") {
           this.updateAnalyticsContent();
         }
         this.updateMainFooter();
 
         return true;
       } catch (error) {
-        this.logToPanel(`點擊失敗：${error.message}`, 'error');
+        this.logToPanel(`點擊失敗：${error.message}`, "error");
         this.roiTimer.completeWorkflow({
           success: false,
           error: error.message,
@@ -2054,13 +2190,13 @@
     extractFileInfo(element) {
       try {
         // 方法 1：在最新的對話訊息中尋找程式碼區塊
-        const conversationsDiv = document.querySelector('div.conversations');
+        const conversationsDiv = document.querySelector("div.conversations");
         if (conversationsDiv) {
           const messageBubbles = Array.from(
-            conversationsDiv.querySelectorAll('[data-message-index]')
+            conversationsDiv.querySelectorAll("[data-message-index]")
           ).sort((a, b) => {
-            const indexA = parseInt(a.getAttribute('data-message-index'));
-            const indexB = parseInt(b.getAttribute('data-message-index'));
+            const indexA = parseInt(a.getAttribute("data-message-index"));
+            const indexB = parseInt(b.getAttribute("data-message-index"));
             return indexB - indexA; // 降序 (最新優先)
           });
 
@@ -2068,7 +2204,7 @@
           for (let i = 0; i < Math.min(5, messageBubbles.length); i++) {
             const bubble = messageBubbles[i];
             const codeBlocks = bubble.querySelectorAll(
-              '.composer-code-block-container, .composer-tool-former-message, .composer-diff-block'
+              ".composer-code-block-container, .composer-tool-former-message, .composer-diff-block"
             );
 
             for (const block of codeBlocks) {
@@ -2083,7 +2219,7 @@
         // 方法 2：備用方法 - 尋找按鈕附近的程式碼區塊
         return this.extractFileInfoFallback(element);
       } catch (error) {
-        console.warn('[extractFileInfo] 錯誤:', error);
+        console.warn("[extractFileInfo] 錯誤:", error);
         return null;
       }
     }
@@ -2096,9 +2232,11 @@
 
         // 多種方法尋找檔名
         const filenameElement =
-          block.querySelector('.composer-code-block-filename span[style*="direction: ltr"]') ||
-          block.querySelector('.composer-code-block-filename span') ||
-          block.querySelector('.composer-code-block-filename');
+          block.querySelector(
+            '.composer-code-block-filename span[style*="direction: ltr"]'
+          ) ||
+          block.querySelector(".composer-code-block-filename span") ||
+          block.querySelector(".composer-code-block-filename");
 
         if (filenameElement) {
           filename = filenameElement.textContent.trim();
@@ -2106,11 +2244,16 @@
 
         // 如果還沒找到檔名，嘗試模式匹配
         if (!filename) {
-          const allSpans = block.querySelectorAll('span');
+          const allSpans = block.querySelectorAll("span");
           for (const span of allSpans) {
             const text = span.textContent.trim();
-            if (text && text.includes('.') && text.length < 100 && !text.includes(' ')) {
-              const parts = text.split('.');
+            if (
+              text &&
+              text.includes(".") &&
+              text.length < 100 &&
+              !text.includes(" ")
+            ) {
+              const parts = text.split(".");
               if (parts.length >= 2 && parts[parts.length - 1].length <= 10) {
                 filename = text;
                 break;
@@ -2148,7 +2291,7 @@
 
         return null;
       } catch (error) {
-        console.warn('[extractFileInfoFromBlock] 錯誤:', error);
+        console.warn("[extractFileInfoFromBlock] 錯誤:", error);
         return null;
       }
     }
@@ -2160,7 +2303,9 @@
       const resumeButtons = [];
 
       // 搜尋下拉選單容器
-      const dropdownContainers = this.elementFinder.findElements(SELECTORS.dropdownContainers);
+      const dropdownContainers = this.elementFinder.findElements(
+        SELECTORS.dropdownContainers
+      );
 
       for (const container of dropdownContainers) {
         // 在每個下拉選單中搜尋 Resume 按鈕
@@ -2187,8 +2332,8 @@
       );
 
       for (const btn of anysphereBtns) {
-        const span = btn.querySelector('span');
-        if (span && span.textContent.trim().toLowerCase().includes('resume')) {
+        const span = btn.querySelector("span");
+        if (span && span.textContent.trim().toLowerCase().includes("resume")) {
           buttons.push(btn);
         }
       }
@@ -2199,8 +2344,8 @@
       );
 
       for (const element of allClickableElements) {
-        const text = element.textContent?.trim().toLowerCase() || '';
-        if (text === 'resume' || text.includes('resume')) {
+        const text = element.textContent?.trim().toLowerCase() || "";
+        if (text === "resume" || text.includes("resume")) {
           // 驗證元素可見性和可點擊性
           if (
             this.elementFinder.isElementVisible(element) &&
@@ -2222,7 +2367,9 @@
       const tryAgainButtons = [];
 
       // 搜尋下拉選單容器
-      const dropdownContainers = this.elementFinder.findElements(SELECTORS.dropdownContainers);
+      const dropdownContainers = this.elementFinder.findElements(
+        SELECTORS.dropdownContainers
+      );
 
       for (const container of dropdownContainers) {
         // 在每個下拉選單中搜尋 Try Again 按鈕
@@ -2231,7 +2378,8 @@
       }
 
       // 也在整個文檔中搜尋（備用方法）
-      const globalTryAgainButtons = this.findTryAgainButtonsInContainer(document);
+      const globalTryAgainButtons =
+        this.findTryAgainButtonsInContainer(document);
       tryAgainButtons.push(...globalTryAgainButtons);
 
       return tryAgainButtons;
@@ -2249,10 +2397,10 @@
       );
 
       for (const btn of anysphereBtns) {
-        const span = btn.querySelector('span');
+        const span = btn.querySelector("span");
         if (span) {
           const spanText = span.textContent.trim().toLowerCase();
-          if (spanText.includes('try again') || spanText.includes('retry')) {
+          if (spanText.includes("try again") || spanText.includes("retry")) {
             buttons.push(btn);
           }
         }
@@ -2264,12 +2412,12 @@
       );
 
       for (const element of allClickableElements) {
-        const text = element.textContent?.trim().toLowerCase() || '';
+        const text = element.textContent?.trim().toLowerCase() || "";
         if (
-          text === 'try again' ||
-          text.includes('try again') ||
-          text === 'retry' ||
-          text.includes('retry')
+          text === "try again" ||
+          text.includes("try again") ||
+          text === "retry" ||
+          text.includes("retry")
         ) {
           // 驗證元素可見性和可點擊性
           if (
@@ -2288,12 +2436,12 @@
     extractFileInfoFallback(button) {
       try {
         // 尋找包含此按鈕的 composer-code-block-container
-        let container = button.closest('.composer-code-block-container');
+        let container = button.closest(".composer-code-block-container");
         if (!container) {
           let parent = button.parentElement;
           let attempts = 0;
           while (parent && attempts < 10) {
-            container = parent.querySelector('.composer-code-block-container');
+            container = parent.querySelector(".composer-code-block-container");
             if (container) break;
             parent = parent.parentElement;
             attempts++;
@@ -2309,15 +2457,23 @@
           '.composer-code-block-filename span[style*="direction: ltr"]'
         );
         if (!filenameElement) {
-          filenameElement = container.querySelector('.composer-code-block-filename span');
+          filenameElement = container.querySelector(
+            ".composer-code-block-filename span"
+          );
         }
         if (!filenameElement) {
-          filenameElement = container.querySelector('.composer-code-block-filename');
+          filenameElement = container.querySelector(
+            ".composer-code-block-filename"
+          );
         }
-        const filename = filenameElement ? filenameElement.textContent.trim() : '未知檔案';
+        const filename = filenameElement
+          ? filenameElement.textContent.trim()
+          : "未知檔案";
 
         // 從 .composer-code-block-status 提取 diff 統計資訊
-        const statusElement = container.querySelector('.composer-code-block-status span');
+        const statusElement = container.querySelector(
+          ".composer-code-block-status span"
+        );
         let addedLines = 0;
         let deletedLines = 0;
 
@@ -2337,7 +2493,7 @@
           timestamp: new Date(),
         };
       } catch (error) {
-        console.warn('[extractFileInfoFallback] 錯誤:', error);
+        console.warn("[extractFileInfoFallback] 錯誤:", error);
         return null;
       }
     }
@@ -2346,8 +2502,8 @@
     createControlPanel() {
       if (this.controlPanel) return;
 
-      this.controlPanel = document.createElement('div');
-      this.controlPanel.id = 'cursor-auto-accept-v2-panel';
+      this.controlPanel = document.createElement("div");
+      this.controlPanel.id = "cursor-auto-accept-v2-panel";
 
       // 使用 DOM API 創建元素，避免 TrustedHTML 問題
       this.createPanelStructure();
@@ -2364,26 +2520,30 @@
      */
     createPanelStructure() {
       // 創建標題區域
-      const header = this.createElement('div', 'aa-header');
+      const header = this.createElement("div", "aa-header");
 
       // 創建標籤區域
-      const tabs = this.createElement('div', 'aa-tabs');
-      const mainTab = this.createElement('button', 'aa-tab aa-tab-active', '主面板');
-      const analyticsTab = this.createElement('button', 'aa-tab', '分析');
-      const roiTab = this.createElement('button', 'aa-tab', 'ROI');
+      const tabs = this.createElement("div", "aa-tabs");
+      const mainTab = this.createElement(
+        "button",
+        "aa-tab aa-tab-active",
+        "主面板"
+      );
+      const analyticsTab = this.createElement("button", "aa-tab", "分析");
+      const roiTab = this.createElement("button", "aa-tab", "ROI");
 
-      mainTab.onclick = () => this.switchTab('main');
-      analyticsTab.onclick = () => this.switchTab('analytics');
-      roiTab.onclick = () => this.switchTab('roi');
+      mainTab.onclick = () => this.switchTab("main");
+      analyticsTab.onclick = () => this.switchTab("analytics");
+      roiTab.onclick = () => this.switchTab("roi");
 
       tabs.appendChild(mainTab);
       tabs.appendChild(analyticsTab);
       tabs.appendChild(roiTab);
 
       // 創建控制按鈕
-      const headerControls = this.createElement('div', 'aa-header-controls');
-      const minimizeBtn = this.createElement('button', 'aa-minimize', '−');
-      const closeBtn = this.createElement('button', 'aa-close', '×');
+      const headerControls = this.createElement("div", "aa-header-controls");
+      const minimizeBtn = this.createElement("button", "aa-minimize", "−");
+      const closeBtn = this.createElement("button", "aa-close", "×");
 
       minimizeBtn.onclick = () => this.toggleMinimize();
       closeBtn.onclick = () => this.hidePanel();
@@ -2395,20 +2555,27 @@
       header.appendChild(headerControls);
 
       // 創建主內容區域
-      const mainContent = this.createElement('div', 'aa-content aa-main-content');
+      const mainContent = this.createElement(
+        "div",
+        "aa-content aa-main-content"
+      );
 
       // 狀態區域
-      const status = this.createElement('div', 'aa-status');
-      const statusText = this.createElement('span', 'aa-status-text', '已停止');
-      const clicksText = this.createElement('span', 'aa-clicks', '0 次點擊');
+      const status = this.createElement("div", "aa-status");
+      const statusText = this.createElement("span", "aa-status-text", "已停止");
+      const clicksText = this.createElement("span", "aa-clicks", "0 次點擊");
       status.appendChild(statusText);
       status.appendChild(clicksText);
 
       // 控制按鈕區域
-      const controls = this.createElement('div', 'aa-controls');
-      const startBtn = this.createElement('button', 'aa-btn aa-start', '開始');
-      const stopBtn = this.createElement('button', 'aa-btn aa-stop', '停止');
-      const configBtn = this.createElement('button', 'aa-btn aa-config', '設定');
+      const controls = this.createElement("div", "aa-controls");
+      const startBtn = this.createElement("button", "aa-btn aa-start", "開始");
+      const stopBtn = this.createElement("button", "aa-btn aa-stop", "停止");
+      const configBtn = this.createElement(
+        "button",
+        "aa-btn aa-config",
+        "設定"
+      );
 
       stopBtn.disabled = true;
 
@@ -2421,112 +2588,112 @@
       controls.appendChild(configBtn);
 
       // 配置面板
-      const configPanel = this.createElement('div', 'aa-config-panel');
-      configPanel.style.display = 'none';
+      const configPanel = this.createElement("div", "aa-config-panel");
+      configPanel.style.display = "none";
 
       const configOptions = [
         {
-          id: 'aa-accept-all',
-          text: '全部接受',
-          english: 'Accept All',
+          id: "aa-accept-all",
+          text: "全部接受",
+          english: "Accept All",
           tooltip: '自動點擊 "Accept All" 按鈕來接受所有建議的更改',
           checked: true,
         },
         {
-          id: 'aa-accept',
-          text: '接受',
-          english: 'Accept',
+          id: "aa-accept",
+          text: "接受",
+          english: "Accept",
           tooltip: '自動點擊 "Accept" 按鈕來接受單個更改',
           checked: true,
         },
         {
-          id: 'aa-run',
-          text: '執行',
-          english: 'Run',
+          id: "aa-run",
+          text: "執行",
+          english: "Run",
           tooltip: '自動點擊 "Run" 按鈕來執行程式碼或指令',
           checked: true,
         },
         {
-          id: 'aa-run-command',
-          text: '執行指令',
-          english: 'Run Command',
+          id: "aa-run-command",
+          text: "執行指令",
+          english: "Run Command",
           tooltip: '自動點擊 "Run Command" 按鈕來執行特定指令',
           checked: true,
         },
         {
-          id: 'aa-apply',
-          text: '套用',
-          english: 'Apply',
+          id: "aa-apply",
+          text: "套用",
+          english: "Apply",
           tooltip: '自動點擊 "Apply" 按鈕來套用更改',
           checked: true,
         },
         {
-          id: 'aa-execute',
-          text: '執行',
-          english: 'Execute',
+          id: "aa-execute",
+          text: "執行",
+          english: "Execute",
           tooltip: '自動點擊 "Execute" 按鈕來執行操作',
           checked: true,
         },
         {
-          id: 'aa-resume',
-          text: '繼續對話',
-          english: 'Resume',
+          id: "aa-resume",
+          text: "繼續對話",
+          english: "Resume",
           tooltip: '自動點擊 "Resume" 連結來繼續中斷的對話',
           checked: true,
         },
         {
-          id: 'aa-try-again',
-          text: '重新嘗試',
-          english: 'Try Again',
-          tooltip: '功能暫時禁用：Try Again 功能有bug正在修復中',
+          id: "aa-try-again",
+          text: "重新嘗試",
+          english: "Try Again",
+          tooltip: "功能暫時禁用：Try Again 功能有bug正在修復中",
           checked: false,
           disabled: true, // 暫時禁用該選項
         },
         {
-          id: 'aa-move-to-background',
-          text: '智能移至背景',
-          english: 'Smart Move to Background',
+          id: "aa-move-to-background",
+          text: "智能移至背景",
+          english: "Smart Move to Background",
           tooltip:
-            '當終端輸出和按鈕狀態30秒內無變化時，且Move to Background和Skip按鈕同時存在時，自動點擊',
+            "當終端輸出和按鈕狀態30秒內無變化時，且Move to Background和Skip按鈕同時存在時，自動點擊",
           checked: false,
         },
       ];
 
-      configOptions.forEach(option => {
-        const label = document.createElement('label');
-        label.className = 'aa-config-option';
+      configOptions.forEach((option) => {
+        const label = document.createElement("label");
+        label.className = "aa-config-option";
 
-        const checkbox = document.createElement('input');
-        checkbox.type = 'checkbox';
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
         checkbox.id = option.id;
         checkbox.checked = option.checked;
         if (option.disabled) {
           checkbox.disabled = true;
         }
 
-        const textSpan = document.createElement('span');
-        textSpan.className = 'aa-config-text';
-        textSpan.textContent = ' ' + option.text;
+        const textSpan = document.createElement("span");
+        textSpan.className = "aa-config-text";
+        textSpan.textContent = " " + option.text;
         if (option.disabled) {
-          textSpan.style.color = '#666';
-          textSpan.style.textDecoration = 'line-through';
+          textSpan.style.color = "#666";
+          textSpan.style.textDecoration = "line-through";
         }
 
-        const englishSpan = document.createElement('span');
-        englishSpan.className = 'aa-config-english';
+        const englishSpan = document.createElement("span");
+        englishSpan.className = "aa-config-english";
         englishSpan.textContent = option.english;
         if (option.disabled) {
-          englishSpan.style.color = '#555';
-          englishSpan.style.textDecoration = 'line-through';
+          englishSpan.style.color = "#555";
+          englishSpan.style.textDecoration = "line-through";
         }
 
-        const infoIcon = document.createElement('span');
-        infoIcon.className = 'aa-config-info';
-        infoIcon.textContent = option.disabled ? '⚠' : '!';
+        const infoIcon = document.createElement("span");
+        infoIcon.className = "aa-config-info";
+        infoIcon.textContent = option.disabled ? "⚠" : "!";
         infoIcon.title = option.tooltip;
         if (option.disabled) {
-          infoIcon.style.background = '#FF9800';
-          infoIcon.style.color = '#fff';
+          infoIcon.style.background = "#FF9800";
+          infoIcon.style.color = "#fff";
         }
 
         label.appendChild(checkbox);
@@ -2537,19 +2704,19 @@
       });
 
       // 日誌區域
-      const log = this.createElement('div', 'aa-log');
+      const log = this.createElement("div", "aa-log");
 
       // ROI 足部區域
-      const roiFooter = this.createElement('div', 'aa-roi-footer');
+      const roiFooter = this.createElement("div", "aa-roi-footer");
 
       // 版權區域
-      const credits = this.createElement('div', 'aa-credits');
-      const small = document.createElement('small');
-      small.textContent = 'Enhanced v2.0.6 by ';
-      const link = document.createElement('a');
-      link.href = 'https://linkedin.com/in/ivalsaraj';
-      link.target = '_blank';
-      link.textContent = '@ivalsaraj';
+      const credits = this.createElement("div", "aa-credits");
+      const small = document.createElement("small");
+      small.textContent = "Enhanced v2.0.6 by ";
+      const link = document.createElement("a");
+      link.href = "https://linkedin.com/in/ivalsaraj";
+      link.target = "_blank";
+      link.textContent = "@ivalsaraj";
       small.appendChild(link);
       credits.appendChild(small);
 
@@ -2562,10 +2729,13 @@
       mainContent.appendChild(credits);
 
       // 分析內容區域
-      const analyticsContent = this.createElement('div', 'aa-content aa-analytics-content');
+      const analyticsContent = this.createElement(
+        "div",
+        "aa-content aa-analytics-content"
+      );
 
       // 設置初始顯示狀態 - 主面板預設顯示
-      mainContent.classList.add('aa-content-visible');
+      mainContent.classList.add("aa-content-visible");
 
       // 組裝整個面板
       this.controlPanel.appendChild(header);
@@ -2576,7 +2746,7 @@
     /**
      * 輔助方法：創建 DOM 元素
      */
-    createElement(tag, className = '', textContent = '') {
+    createElement(tag, className = "", textContent = "") {
       const element = document.createElement(tag);
       if (className) element.className = className;
       if (textContent) element.textContent = textContent;
@@ -2584,10 +2754,10 @@
     }
 
     addPanelStyles() {
-      if (document.getElementById('cursor-auto-accept-v2-styles')) return;
+      if (document.getElementById("cursor-auto-accept-v2-styles")) return;
 
-      const style = document.createElement('style');
-      style.id = 'cursor-auto-accept-v2-styles';
+      const style = document.createElement("style");
+      style.id = "cursor-auto-accept-v2-styles";
       style.textContent = `
         #cursor-auto-accept-v2-panel {
           position: fixed;
@@ -2820,33 +2990,35 @@
           line-height: 1.3;
         }
         
-        /* 細卷軸設計 - 適用於所有可滾動區域 */
+        /* ──────────────────────────────────────────────
+          Apple-like overlay scrollbar (modern macOS)
+        ────────────────────────────────────────────── */
         #cursor-auto-accept-v2-panel ::-webkit-scrollbar {
-        width: 4px;
-        height: 4px;
+          width: 6px;
+          height: 6px;
+          background: transparent;
         }
 
         #cursor-auto-accept-v2-panel ::-webkit-scrollbar-track {
-        background: transparent;
+          background: transparent;
         }
 
         #cursor-auto-accept-v2-panel ::-webkit-scrollbar-thumb {
-        background: #666;
-        border-radius: 2px;
+          background: rgba(120,120,120,0.35);
+          border-radius: 4px;
+          backdrop-filter: blur(4px);
+          transition: background 0.2s ease;
         }
 
-        #cursor-auto-accept-v2-panel ::-webkit-scrollbar-thumb:hover {
-        background: #888;
-        }
-        
+        #cursor-auto-accept-v2-panel ::-webkit-scrollbar-thumb:hover,
         #cursor-auto-accept-v2-panel ::-webkit-scrollbar-thumb:active {
-          background: #888;
+          background: rgba(120,120,120,0.55);
         }
-        
+
         #cursor-auto-accept-v2-panel ::-webkit-scrollbar-corner {
-          background: #1e1e1e;
+          background: transparent;
         }
-        
+
         /* 確保分析內容區域可滾動 */
         .aa-analytics-content {
           overflow-y: auto;
@@ -3043,12 +3215,15 @@
 
     setupPanelEvents() {
       // 拖曳功能
-      const header = this.controlPanel.querySelector('.aa-header');
+      const header = this.controlPanel.querySelector(".aa-header");
       let isDragging = false;
       let dragOffset = { x: 0, y: 0 };
 
-      header.addEventListener('mousedown', e => {
-        if (e.target.classList.contains('aa-minimize') || e.target.classList.contains('aa-close'))
+      header.addEventListener("mousedown", (e) => {
+        if (
+          e.target.classList.contains("aa-minimize") ||
+          e.target.classList.contains("aa-close")
+        )
           return;
         isDragging = true;
         const rect = this.controlPanel.getBoundingClientRect();
@@ -3057,54 +3232,66 @@
         e.preventDefault();
       });
 
-      document.addEventListener('mousemove', e => {
+      document.addEventListener("mousemove", (e) => {
         if (!isDragging) return;
         const x = e.clientX - dragOffset.x;
         const y = e.clientY - dragOffset.y;
         this.controlPanel.style.left =
-          Math.max(0, Math.min(window.innerWidth - this.controlPanel.offsetWidth, x)) + 'px';
+          Math.max(
+            0,
+            Math.min(window.innerWidth - this.controlPanel.offsetWidth, x)
+          ) + "px";
         this.controlPanel.style.top =
-          Math.max(0, Math.min(window.innerHeight - this.controlPanel.offsetHeight, y)) + 'px';
-        this.controlPanel.style.right = 'auto';
+          Math.max(
+            0,
+            Math.min(window.innerHeight - this.controlPanel.offsetHeight, y)
+          ) + "px";
+        this.controlPanel.style.right = "auto";
       });
 
-      document.addEventListener('mouseup', () => {
+      document.addEventListener("mouseup", () => {
         isDragging = false;
       });
 
       // 設定複選框事件
       const configMap = {
-        'aa-accept-all': 'enableAcceptAll',
-        'aa-accept': 'enableAccept',
-        'aa-run': 'enableRun',
-        'aa-run-command': 'enableRunCommand',
-        'aa-apply': 'enableApply',
-        'aa-execute': 'enableExecute',
-        'aa-resume': 'enableResume',
-        'aa-try-again': 'enableTryAgain',
-        'aa-move-to-background': 'enableMoveToBackground',
+        "aa-accept-all": "enableAcceptAll",
+        "aa-accept": "enableAccept",
+        "aa-run": "enableRun",
+        "aa-run-command": "enableRunCommand",
+        "aa-apply": "enableApply",
+        "aa-execute": "enableExecute",
+        "aa-resume": "enableResume",
+        "aa-try-again": "enableTryAgain",
+        "aa-move-to-background": "enableMoveToBackground",
       };
 
       Object.entries(configMap).forEach(([id, configKey]) => {
         const checkbox = this.controlPanel.querySelector(`#${id}`);
         if (checkbox) {
-          checkbox.addEventListener('change', () => {
+          checkbox.addEventListener("change", () => {
             this.config[configKey] = checkbox.checked;
 
             // 特殊處理 Move to Background 功能
-            if (configKey === 'enableMoveToBackground') {
+            if (configKey === "enableMoveToBackground") {
               if (checkbox.checked && this.isRunning) {
                 this.backgroundMover.configure({ enabled: true });
                 this.backgroundMover.start();
-                this.logToPanel('已啟用 Move to Background 自動點擊功能', 'info');
+                this.logToPanel(
+                  "已啟用 Move to Background 自動點擊功能",
+                  "info"
+                );
               } else {
                 this.backgroundMover.stop();
-                this.logToPanel('已停用 Move to Background 自動點擊功能', 'info');
+                this.logToPanel(
+                  "已停用 Move to Background 自動點擊功能",
+                  "info"
+                );
               }
             }
 
             // 同步相關配置
-            if (configKey === 'enableRun') {
+            if (configKey === "enableRun") {
               this.config.enableRunCommand = checkbox.checked;
               this.config.enableExecute = checkbox.checked;
             }
@@ -3134,7 +3321,7 @@
       }
 
       this.updatePanelStatus();
-      this.logToPanel('已開始自動接受', 'info');
+      this.logToPanel("已開始自動接受", "info");
     }
 
     stop() {
@@ -3145,75 +3332,80 @@
       this.backgroundMover.stop(); // 停止 Move to Background 功能
 
       this.updatePanelStatus();
-      this.logToPanel('已停止自動接受', 'info');
+      this.logToPanel("已停止自動接受", "info");
     }
 
     switchTab(tabName) {
       this.currentTab = tabName;
 
       // 更新標籤樣式
-      const tabs = this.controlPanel.querySelectorAll('.aa-tab');
+      const tabs = this.controlPanel.querySelectorAll(".aa-tab");
       tabs.forEach((tab, index) => {
-        tab.classList.remove('aa-tab-active');
+        tab.classList.remove("aa-tab-active");
         if (
-          (index === 0 && tabName === 'main') ||
-          (index === 1 && tabName === 'analytics') ||
-          (index === 2 && tabName === 'roi')
+          (index === 0 && tabName === "main") ||
+          (index === 1 && tabName === "analytics") ||
+          (index === 2 && tabName === "roi")
         ) {
-          tab.classList.add('aa-tab-active');
+          tab.classList.add("aa-tab-active");
         }
       });
 
       // 更新內容顯示 - 使用 CSS class 而不是內聯 style
-      const mainContent = this.controlPanel.querySelector('.aa-main-content');
-      const analyticsContent = this.controlPanel.querySelector('.aa-analytics-content');
+      const mainContent = this.controlPanel.querySelector(".aa-main-content");
+      const analyticsContent = this.controlPanel.querySelector(
+        ".aa-analytics-content"
+      );
 
       // 移除所有內容顯示 class
-      mainContent.classList.remove('aa-content-visible');
-      analyticsContent.classList.remove('aa-content-visible');
+      mainContent.classList.remove("aa-content-visible");
+      analyticsContent.classList.remove("aa-content-visible");
 
-      if (tabName === 'main') {
-        mainContent.classList.add('aa-content-visible');
+      if (tabName === "main") {
+        mainContent.classList.add("aa-content-visible");
       } else {
-        analyticsContent.classList.add('aa-content-visible');
+        analyticsContent.classList.add("aa-content-visible");
         this.updateAnalyticsContent();
       }
     }
 
     toggleConfig() {
-      const configPanel = this.controlPanel.querySelector('.aa-config-panel');
-      configPanel.style.display = configPanel.style.display === 'none' ? 'block' : 'none';
+      const configPanel = this.controlPanel.querySelector(".aa-config-panel");
+      configPanel.style.display =
+        configPanel.style.display === "none" ? "block" : "none";
     }
 
     toggleMinimize() {
-      const isMinimized = this.controlPanel.classList.contains('aa-minimized');
+      const isMinimized = this.controlPanel.classList.contains("aa-minimized");
 
       if (isMinimized) {
-        this.controlPanel.classList.remove('aa-minimized');
-        this.logToPanel('面板已展開', 'info');
+        this.controlPanel.classList.remove("aa-minimized");
+        this.logToPanel("面板已展開", "info");
       } else {
-        this.controlPanel.classList.add('aa-minimized');
-        this.logToPanel('面板已收折', 'info');
+        this.controlPanel.classList.add("aa-minimized");
+        this.logToPanel("面板已收折", "info");
       }
     }
 
     hidePanel() {
-      this.controlPanel.style.display = 'none';
+      this.controlPanel.style.display = "none";
     }
 
     showPanel() {
-      this.controlPanel.style.display = 'flex';
+      this.controlPanel.style.display = "flex";
     }
 
     updatePanelStatus() {
-      const statusText = this.controlPanel?.querySelector('.aa-status-text');
-      const clicksText = this.controlPanel?.querySelector('.aa-clicks');
-      const startBtn = this.controlPanel?.querySelector('.aa-start');
-      const stopBtn = this.controlPanel?.querySelector('.aa-stop');
+      const statusText = this.controlPanel?.querySelector(".aa-status-text");
+      const clicksText = this.controlPanel?.querySelector(".aa-clicks");
+      const startBtn = this.controlPanel?.querySelector(".aa-start");
+      const stopBtn = this.controlPanel?.querySelector(".aa-stop");
 
       if (statusText) {
-        statusText.textContent = this.isRunning ? '執行中' : '已停止';
-        statusText.className = `aa-status-text ${this.isRunning ? 'running' : 'stopped'}`;
+        statusText.textContent = this.isRunning ? "執行中" : "已停止";
+        statusText.className = `aa-status-text ${
+          this.isRunning ? "running" : "stopped"
+        }`;
       }
 
       if (clicksText) {
@@ -3225,22 +3417,26 @@
     }
 
     updateAnalyticsContent() {
-      const analyticsContent = this.controlPanel?.querySelector('.aa-analytics-content');
+      const analyticsContent = this.controlPanel?.querySelector(
+        ".aa-analytics-content"
+      );
       if (!analyticsContent) return;
 
       // 使用 replaceChildren() 替代 while 迴圈
       analyticsContent.replaceChildren();
 
-      if (this.currentTab === 'analytics') {
+      if (this.currentTab === "analytics") {
         this.renderAnalyticsTab(analyticsContent);
-      } else if (this.currentTab === 'roi') {
+      } else if (this.currentTab === "roi") {
         this.renderROITab(analyticsContent);
       }
     }
 
     renderAnalyticsTab(container) {
       const now = new Date();
-      const sessionDuration = Math.round((now - this.analytics.data.sessionStart) / 1000 / 60); // 分鐘
+      const sessionDuration = Math.round(
+        (now - this.analytics.data.sessionStart) / 1000 / 60
+      ); // 分鐘
       const data = this.analytics.exportData();
 
       // 計算總計
@@ -3248,38 +3444,42 @@
       let totalAdded = 0;
       let totalDeleted = 0;
 
-      Object.values(data.files).forEach(fileData => {
+      Object.values(data.files).forEach((fileData) => {
         totalAdded += fileData.totalAdded || 0;
         totalDeleted += fileData.totalDeleted || 0;
       });
 
       // 建立分析摘要
-      const summaryDiv = this.createElement('div', 'aa-analytics-summary');
-      const summaryTitle = this.createElement('h4', '', '📊 會話分析');
+      const summaryDiv = this.createElement("div", "aa-analytics-summary");
+      const summaryTitle = this.createElement("h4", "", "📊 會話分析");
       summaryDiv.appendChild(summaryTitle);
 
       const stats = [
-        { label: '會話時長：', value: `${sessionDuration}分鐘` },
-        { label: '總接受次數：', value: `${data.totalAccepts}` },
-        { label: '已修改檔案：', value: `${totalFiles}` },
+        { label: "會話時長：", value: `${sessionDuration}分鐘` },
+        { label: "總接受次數：", value: `${data.totalAccepts}` },
+        { label: "已修改檔案：", value: `${totalFiles}` },
         {
-          label: '增加行數：',
+          label: "增加行數：",
           value: `${totalAdded}`,
-          class: 'aa-stat-added',
+          class: "aa-stat-added",
         },
         {
-          label: '刪除行數：',
+          label: "刪除行數：",
           value: `${totalDeleted}`,
-          class: 'aa-stat-deleted',
+          class: "aa-stat-deleted",
         },
       ];
 
-      stats.forEach(stat => {
-        const statDiv = this.createElement('div', 'aa-stat');
-        const labelSpan = this.createElement('span', 'aa-stat-label', stat.label);
+      stats.forEach((stat) => {
+        const statDiv = this.createElement("div", "aa-stat");
+        const labelSpan = this.createElement(
+          "span",
+          "aa-stat-label",
+          stat.label
+        );
         const valueSpan = this.createElement(
-          'span',
-          `aa-stat-value ${stat.class || ''}`,
+          "span",
+          `aa-stat-value ${stat.class || ""}`,
           stat.value
         );
         statDiv.appendChild(labelSpan);
@@ -3289,29 +3489,41 @@
 
       // 添加按鈕類型細分
       if (data.buttonTypes && Object.keys(data.buttonTypes).length > 0) {
-        const buttonTypeDiv = this.createElement('div', 'aa-button-types');
-        buttonTypeDiv.style.marginTop = '8px';
+        const buttonTypeDiv = this.createElement("div", "aa-button-types");
+        buttonTypeDiv.style.marginTop = "8px";
 
-        const buttonTypeTitle = this.createElement('h5', '', '🎯 按鈕類型');
-        buttonTypeTitle.style.cssText = 'margin: 8px 0 4px 0; font-size: 11px; color: #ddd;';
+        const buttonTypeTitle = this.createElement("h5", "", "🎯 按鈕類型");
+        buttonTypeTitle.style.cssText =
+          "margin: 8px 0 4px 0; font-size: 11px; color: #ddd;";
         buttonTypeDiv.appendChild(buttonTypeTitle);
 
         Object.entries(data.buttonTypes).forEach(([type, count]) => {
-          const typeDiv = this.createElement('div', 'aa-stat aa-button-type-stat');
-          typeDiv.style.cssText = 'font-size: 10px; padding: 2px 0;';
+          const typeDiv = this.createElement(
+            "div",
+            "aa-stat aa-button-type-stat"
+          );
+          typeDiv.style.cssText = "font-size: 10px; padding: 2px 0;";
 
-          const labelSpan = this.createElement('span', 'aa-stat-label', `${type}:`);
-          const valueSpan = this.createElement('span', 'aa-stat-value', `${count}次`);
+          const labelSpan = this.createElement(
+            "span",
+            "aa-stat-label",
+            `${type}:`
+          );
+          const valueSpan = this.createElement(
+            "span",
+            "aa-stat-value",
+            `${count}次`
+          );
 
           // 添加特定類型的樣式
-          if (type === 'accept' || type === 'acceptAll') {
-            valueSpan.style.color = '#4CAF50';
-          } else if (type === 'run' || type === 'runCommand') {
-            valueSpan.style.color = '#FF9800';
-          } else if (type === 'resume') {
-            valueSpan.style.color = '#2196F3';
+          if (type === "accept" || type === "acceptAll") {
+            valueSpan.style.color = "#4CAF50";
+          } else if (type === "run" || type === "runCommand") {
+            valueSpan.style.color = "#FF9800";
+          } else if (type === "resume") {
+            valueSpan.style.color = "#2196F3";
           } else {
-            valueSpan.style.color = '#9C27B0';
+            valueSpan.style.color = "#9C27B0";
           }
 
           typeDiv.appendChild(labelSpan);
@@ -3325,34 +3537,43 @@
       // 添加 Move to Background 統計
       const backgroundStats = this.backgroundMover.getStats();
       if (backgroundStats.totalMoves > 0) {
-        const bgStatsDiv = this.createElement('div', 'aa-background-stats');
-        bgStatsDiv.style.marginTop = '8px';
+        const bgStatsDiv = this.createElement("div", "aa-background-stats");
+        bgStatsDiv.style.marginTop = "8px";
 
-        const bgTitle = this.createElement('h5', '', '🔄 背景移動統計');
-        bgTitle.style.cssText = 'margin: 8px 0 4px 0; font-size: 11px; color: #ddd;';
+        const bgTitle = this.createElement("h5", "", "🔄 背景移動統計");
+        bgTitle.style.cssText =
+          "margin: 8px 0 4px 0; font-size: 11px; color: #ddd;";
         bgStatsDiv.appendChild(bgTitle);
 
         const bgStatsData = [
-          { label: '自動移動次數：', value: `${backgroundStats.totalMoves}次` },
+          { label: "自動移動次數：", value: `${backgroundStats.totalMoves}次` },
           {
-            label: '平均閒置時間：',
+            label: "平均閒置時間：",
             value: this.formatTimeDuration(backgroundStats.averageIdleTime),
           },
           {
-            label: '最後移動時間：',
+            label: "最後移動時間：",
             value: backgroundStats.lastMoveTime
               ? this.getTimeAgo(backgroundStats.lastMoveTime)
-              : '無',
+              : "無",
           },
         ];
 
-        bgStatsData.forEach(stat => {
-          const statDiv = this.createElement('div', 'aa-stat');
-          statDiv.style.cssText = 'font-size: 10px; padding: 2px 0;';
+        bgStatsData.forEach((stat) => {
+          const statDiv = this.createElement("div", "aa-stat");
+          statDiv.style.cssText = "font-size: 10px; padding: 2px 0;";
 
-          const labelSpan = this.createElement('span', 'aa-stat-label', stat.label);
-          const valueSpan = this.createElement('span', 'aa-stat-value', stat.value);
-          valueSpan.style.color = '#2196F3';
+          const labelSpan = this.createElement(
+            "span",
+            "aa-stat-label",
+            stat.label
+          );
+          const valueSpan = this.createElement(
+            "span",
+            "aa-stat-value",
+            stat.value
+          );
+          valueSpan.style.color = "#2196F3";
 
           statDiv.appendChild(labelSpan);
           statDiv.appendChild(valueSpan);
@@ -3363,19 +3584,27 @@
       }
 
       // 建立檔案部分
-      const filesDiv = this.createElement('div', 'aa-analytics-files');
-      const filesTitle = this.createElement('h4', '', '📁 檔案活動');
+      const filesDiv = this.createElement("div", "aa-analytics-files");
+      const filesTitle = this.createElement("h4", "", "📁 檔案活動");
       filesDiv.appendChild(filesTitle);
 
-      const filesList = this.createElement('div', 'aa-files-list');
+      const filesList = this.createElement("div", "aa-files-list");
       this.renderFilesList(filesList, data.files);
       filesDiv.appendChild(filesList);
 
       // 建立操作部分
-      const actionsDiv = this.createElement('div', 'aa-analytics-actions');
+      const actionsDiv = this.createElement("div", "aa-analytics-actions");
 
-      const exportBtn = this.createElement('button', 'aa-btn aa-btn-small', '匯出資料');
-      const clearBtn = this.createElement('button', 'aa-btn aa-btn-small', '清除資料');
+      const exportBtn = this.createElement(
+        "button",
+        "aa-btn aa-btn-small",
+        "匯出資料"
+      );
+      const clearBtn = this.createElement(
+        "button",
+        "aa-btn aa-btn-small",
+        "清除資料"
+      );
 
       exportBtn.onclick = () => this.exportAnalytics();
       clearBtn.onclick = () => this.clearAnalytics();
@@ -3384,14 +3613,14 @@
       actionsDiv.appendChild(clearBtn);
 
       // 建立鳴謝部分
-      const creditsDiv = this.createElement('div', 'aa-credits');
-      const creditsText = document.createElement('small');
-      creditsText.textContent = '作者：';
+      const creditsDiv = this.createElement("div", "aa-credits");
+      const creditsText = document.createElement("small");
+      creditsText.textContent = "作者：";
 
-      const creditsLink = document.createElement('a');
-      creditsLink.href = 'https://linkedin.com/in/ivalsaraj';
-      creditsLink.target = '_blank';
-      creditsLink.textContent = '@ivalsaraj';
+      const creditsLink = document.createElement("a");
+      creditsLink.href = "https://linkedin.com/in/ivalsaraj";
+      creditsLink.target = "_blank";
+      creditsLink.textContent = "@ivalsaraj";
 
       creditsText.appendChild(creditsLink);
       creditsDiv.appendChild(creditsText);
@@ -3412,55 +3641,62 @@
       // 使用安全備用值計算 ROI 指標
       const totalTimeSaved = data.roiData.totalTimeSaved || 0;
       const totalAccepts = data.totalAccepts || 0;
-      const averageTimePerClick = totalAccepts > 0 ? totalTimeSaved / totalAccepts : 0;
+      const averageTimePerClick =
+        totalAccepts > 0 ? totalTimeSaved / totalAccepts : 0;
 
       // 修正生產力提升計算邏輯：相對於沒有自動化的情況下的效率提升
       // 沒有自動化時的總時間 = 會話時長 + 節省時間
       const totalTimeWithoutAutomation = sessionDuration + totalTimeSaved;
       const productivityGain =
-        totalTimeWithoutAutomation > 0 ? (totalTimeSaved / totalTimeWithoutAutomation) * 100 : 0;
+        totalTimeWithoutAutomation > 0
+          ? (totalTimeSaved / totalTimeWithoutAutomation) * 100
+          : 0;
 
       // 建立 ROI 摘要
-      const summaryDiv = this.createElement('div', 'aa-roi-summary');
-      const summaryTitle = this.createElement('h4', '', '⚡ 完整工作流程 ROI');
+      const summaryDiv = this.createElement("div", "aa-roi-summary");
+      const summaryTitle = this.createElement("h4", "", "⚡ 完整工作流程 ROI");
       summaryDiv.appendChild(summaryTitle);
 
       // 添加工作流程測量說明
-      const explanationDiv = this.createElement('div', 'aa-roi-explanation');
+      const explanationDiv = this.createElement("div", "aa-roi-explanation");
       explanationDiv.style.cssText =
-        'font-size: 10px; color: #888; margin-bottom: 8px; line-height: 1.3;';
+        "font-size: 10px; color: #888; margin-bottom: 8px; line-height: 1.3;";
       explanationDiv.textContent =
-        '衡量完整的 AI 工作流程：使用者提示 → Cursor 生成 → 手動觀看/點擊 vs 自動接受';
+        "衡量完整的 AI 工作流程：使用者提示 → Cursor 生成 → 手動觀看/點擊 vs 自動接受";
       summaryDiv.appendChild(explanationDiv);
 
       const roiStats = [
         {
-          label: '總節省時間：',
+          label: "總節省時間：",
           value: this.formatTimeDuration(totalTimeSaved),
-          class: 'aa-roi-highlight',
+          class: "aa-roi-highlight",
         },
         {
-          label: '會話時長：',
+          label: "會話時長：",
           value: this.formatTimeDuration(sessionDuration),
         },
         {
-          label: '每次點擊平均節省：',
+          label: "每次點擊平均節省：",
           value: this.formatTimeDuration(averageTimePerClick),
         },
         {
-          label: '生產力提升：',
+          label: "生產力提升：",
           value: `${productivityGain.toFixed(1)}%`,
-          class: 'aa-roi-percentage',
+          class: "aa-roi-percentage",
         },
-        { label: '自動化點擊次數：', value: `${totalAccepts}` },
+        { label: "自動化點擊次數：", value: `${totalAccepts}` },
       ];
 
-      roiStats.forEach(stat => {
-        const statDiv = this.createElement('div', 'aa-stat');
-        const labelSpan = this.createElement('span', 'aa-stat-label', stat.label);
+      roiStats.forEach((stat) => {
+        const statDiv = this.createElement("div", "aa-stat");
+        const labelSpan = this.createElement(
+          "span",
+          "aa-stat-label",
+          stat.label
+        );
         const valueSpan = this.createElement(
-          'span',
-          `aa-stat-value ${stat.class || ''}`,
+          "span",
+          `aa-stat-value ${stat.class || ""}`,
           stat.value
         );
         statDiv.appendChild(labelSpan);
@@ -3469,26 +3705,27 @@
       });
 
       // 建立影響分析
-      const impactDiv = this.createElement('div', 'aa-roi-impact');
-      const impactTitle = this.createElement('h4', '', '📈 影響分析');
+      const impactDiv = this.createElement("div", "aa-roi-impact");
+      const impactTitle = this.createElement("h4", "", "📈 影響分析");
       impactDiv.appendChild(impactTitle);
 
-      const impactText = this.createElement('div', 'aa-roi-text');
+      const impactText = this.createElement("div", "aa-roi-text");
 
       // 使用安全除法計算不同情境
-      const hourlyRate = sessionDuration > 0 ? totalTimeSaved / sessionDuration : 0;
+      const hourlyRate =
+        sessionDuration > 0 ? totalTimeSaved / sessionDuration : 0;
       const dailyProjection = hourlyRate * (8 * 60 * 60 * 1000); // 8 小時工作日
       const weeklyProjection = dailyProjection * 5;
       const monthlyProjection = dailyProjection * 22; // 工作日
 
       const scenarios = [
-        { period: '每日 (8小時)', saved: dailyProjection },
-        { period: '每週 (5天)', saved: weeklyProjection },
-        { period: '每月 (22天)', saved: monthlyProjection },
+        { period: "每日 (8小時)", saved: dailyProjection },
+        { period: "每週 (5天)", saved: weeklyProjection },
+        { period: "每月 (22天)", saved: monthlyProjection },
       ];
 
-      scenarios.forEach(scenario => {
-        const scenarioDiv = this.createElement('div', 'aa-roi-scenario');
+      scenarios.forEach((scenario) => {
+        const scenarioDiv = this.createElement("div", "aa-roi-scenario");
         scenarioDiv.textContent = `${
           scenario.period
         }：節省 ${this.formatTimeDuration(scenario.saved)}`;
@@ -3498,24 +3735,31 @@
       impactDiv.appendChild(impactText);
 
       // 手動 vs 自動比較
-      const comparisonDiv = this.createElement('div', 'aa-roi-comparison');
-      const comparisonTitle = this.createElement('h4', '', '🔄 完整工作流程比較');
+      const comparisonDiv = this.createElement("div", "aa-roi-comparison");
+      const comparisonTitle = this.createElement(
+        "h4",
+        "",
+        "🔄 完整工作流程比較"
+      );
       comparisonDiv.appendChild(comparisonTitle);
 
       // 添加工作流程分解說明
-      const workflowBreakdown = this.createElement('div', 'aa-workflow-breakdown');
+      const workflowBreakdown = this.createElement(
+        "div",
+        "aa-workflow-breakdown"
+      );
       workflowBreakdown.style.cssText =
-        'font-size: 10px; color: #888; margin-bottom: 8px; line-height: 1.3;';
+        "font-size: 10px; color: #888; margin-bottom: 8px; line-height: 1.3;";
 
       const manualLine = this.createElement(
-        'div',
-        '',
-        '手動：觀看生成 + 找按鈕 + 點擊 + 切換 (~30秒)'
+        "div",
+        "",
+        "手動：觀看生成 + 找按鈕 + 點擊 + 切換 (~30秒)"
       );
       const automatedLine = this.createElement(
-        'div',
-        '',
-        '自動：在您編碼時即時偵測和點擊 (~0.1秒)'
+        "div",
+        "",
+        "自動：在您編碼時即時偵測和點擊 (~0.1秒)"
       );
 
       workflowBreakdown.appendChild(manualLine);
@@ -3527,28 +3771,32 @@
 
       const comparisonStats = [
         {
-          label: '手動工作流程時間：',
+          label: "手動工作流程時間：",
           value: this.formatTimeDuration(manualTime),
-          class: 'aa-roi-manual',
+          class: "aa-roi-manual",
         },
         {
-          label: '自動工作流程時間：',
+          label: "自動工作流程時間：",
           value: this.formatTimeDuration(automatedTime),
-          class: 'aa-roi-auto',
+          class: "aa-roi-auto",
         },
         {
-          label: '工作流程效率：',
+          label: "工作流程效率：",
           value: `${stats.efficiency.toFixed(1)}%`,
-          class: 'aa-roi-highlight',
+          class: "aa-roi-highlight",
         },
       ];
 
-      comparisonStats.forEach(stat => {
-        const statDiv = this.createElement('div', 'aa-stat');
-        const labelSpan = this.createElement('span', 'aa-stat-label', stat.label);
+      comparisonStats.forEach((stat) => {
+        const statDiv = this.createElement("div", "aa-stat");
+        const labelSpan = this.createElement(
+          "span",
+          "aa-stat-label",
+          stat.label
+        );
         const valueSpan = this.createElement(
-          'span',
-          `aa-stat-value ${stat.class || ''}`,
+          "span",
+          `aa-stat-value ${stat.class || ""}`,
           stat.value
         );
         statDiv.appendChild(labelSpan);
@@ -3557,14 +3805,14 @@
       });
 
       // 也為 ROI 標籤頁建立鳴謝部分
-      const creditsDiv = this.createElement('div', 'aa-credits');
-      const creditsText = document.createElement('small');
-      creditsText.textContent = '作者：';
+      const creditsDiv = this.createElement("div", "aa-credits");
+      const creditsText = document.createElement("small");
+      creditsText.textContent = "作者：";
 
-      const creditsLink = document.createElement('a');
-      creditsLink.href = 'https://linkedin.com/in/ivalsaraj';
-      creditsLink.target = '_blank';
-      creditsLink.textContent = '@ivalsaraj';
+      const creditsLink = document.createElement("a");
+      creditsLink.href = "https://linkedin.com/in/ivalsaraj";
+      creditsLink.target = "_blank";
+      creditsLink.textContent = "@ivalsaraj";
 
       creditsText.appendChild(creditsLink);
       creditsDiv.appendChild(creditsText);
@@ -3578,9 +3826,13 @@
 
     renderFilesList(container, filesData) {
       if (!filesData || Object.keys(filesData).length === 0) {
-        const noFilesDiv = this.createElement('div', 'aa-no-files', '尚無檔案被修改');
+        const noFilesDiv = this.createElement(
+          "div",
+          "aa-no-files",
+          "尚無檔案被修改"
+        );
         noFilesDiv.style.cssText =
-          'color: #888; font-size: 11px; text-align: center; padding: 20px;';
+          "color: #888; font-size: 11px; text-align: center; padding: 20px;";
         container.appendChild(noFilesDiv);
         return;
       }
@@ -3592,46 +3844,56 @@
       sortedFiles.forEach(([filename, data]) => {
         const timeAgo = this.getTimeAgo(new Date(data.lastAccepted));
 
-        const fileItem = this.createElement('div', 'aa-file-item');
-        fileItem.style.cssText = 'padding: 4px 0; border-bottom: 1px solid #333;';
+        const fileItem = this.createElement("div", "aa-file-item");
+        fileItem.style.cssText =
+          "padding: 4px 0; border-bottom: 1px solid #333;";
 
-        const fileName = this.createElement('div', 'aa-file-name', filename);
+        const fileName = this.createElement("div", "aa-file-name", filename);
         fileName.style.cssText =
-          'font-size: 11px; color: #fff; font-weight: 500; margin-bottom: 2px; word-break: break-all;';
+          "font-size: 11px; color: #fff; font-weight: 500; margin-bottom: 2px; word-break: break-all;";
 
-        const fileStats = this.createElement('div', 'aa-file-stats');
-        fileStats.style.cssText = 'display: flex; gap: 8px; font-size: 10px; color: #888;';
+        const fileStats = this.createElement("div", "aa-file-stats");
+        fileStats.style.cssText =
+          "display: flex; gap: 8px; font-size: 10px; color: #888;";
 
-        const fileCount = this.createElement('span', 'aa-file-count', `${data.acceptCount}次`);
+        const fileCount = this.createElement(
+          "span",
+          "aa-file-count",
+          `${data.acceptCount}次`
+        );
         fileCount.style.cssText =
-          'background: #444; padding: 1px 4px; border-radius: 2px; color: #ccc;';
+          "background: #444; padding: 1px 4px; border-radius: 2px; color: #ccc;";
 
-        const fileChanges = this.createElement('span', 'aa-file-changes');
+        const fileChanges = this.createElement("span", "aa-file-changes");
 
         if ((data.totalAdded || 0) > 0) {
-          const addedSpan = this.createElement('span', 'aa-stat-added', `${data.totalAdded || 0}`);
+          const addedSpan = this.createElement(
+            "span",
+            "aa-stat-added",
+            `${data.totalAdded || 0}`
+          );
           fileChanges.appendChild(addedSpan);
         }
 
         if ((data.totalDeleted || 0) > 0) {
           if ((data.totalAdded || 0) > 0) {
-            fileChanges.appendChild(document.createTextNode(' / '));
+            fileChanges.appendChild(document.createTextNode(" / "));
           }
           const deletedSpan = this.createElement(
-            'span',
-            'aa-stat-deleted',
+            "span",
+            "aa-stat-deleted",
             `${data.totalDeleted || 0}`
           );
           fileChanges.appendChild(deletedSpan);
         }
 
         if ((data.totalAdded || 0) === 0 && (data.totalDeleted || 0) === 0) {
-          fileChanges.textContent = '無更改';
-          fileChanges.style.color = '#888';
+          fileChanges.textContent = "無更改";
+          fileChanges.style.color = "#888";
         }
 
-        const fileTime = this.createElement('span', 'aa-file-time', timeAgo);
-        fileTime.style.marginLeft = 'auto';
+        const fileTime = this.createElement("span", "aa-file-time", timeAgo);
+        fileTime.style.marginLeft = "auto";
 
         fileStats.appendChild(fileCount);
         fileStats.appendChild(fileChanges);
@@ -3655,7 +3917,7 @@
     }
 
     updateMainFooter() {
-      const roiFooter = this.controlPanel?.querySelector('.aa-roi-footer');
+      const roiFooter = this.controlPanel?.querySelector(".aa-roi-footer");
       if (!roiFooter) return;
 
       // 清空現有內容
@@ -3667,23 +3929,23 @@
       const stats = this.roiTimer.getStatistics();
 
       // 使用 DOM API 創建 ROI 資訊
-      const title = this.createElement('div', '', '⚡ 工作流程 ROI');
-      title.style.fontWeight = '600';
-      title.style.marginBottom = '4px';
+      const title = this.createElement("div", "", "⚡ 工作流程 ROI");
+      title.style.fontWeight = "600";
+      title.style.marginBottom = "4px";
 
-      const statsDiv = this.createElement('div', '');
-      statsDiv.style.display = 'flex';
-      statsDiv.style.justifyContent = 'space-between';
-      statsDiv.style.fontSize = '9px';
+      const statsDiv = this.createElement("div", "");
+      statsDiv.style.display = "flex";
+      statsDiv.style.justifyContent = "space-between";
+      statsDiv.style.fontSize = "9px";
 
       const timeSpan = this.createElement(
-        'span',
-        '',
+        "span",
+        "",
         `節省時間：${this.formatTimeDuration(data.roiData.totalTimeSaved)}`
       );
       const efficiencySpan = this.createElement(
-        'span',
-        '',
+        "span",
+        "",
         `效率：${stats.efficiency.toFixed(1)}%`
       );
 
@@ -3697,28 +3959,31 @@
     exportAnalytics() {
       const data = this.analytics.exportData();
       const blob = new Blob([JSON.stringify(data, null, 2)], {
-        type: 'application/json',
+        type: "application/json",
       });
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const a = document.createElement("a");
       a.href = url;
-      a.download = `cursor-auto-accept-v2-${new Date().toISOString().split('T')[0]}.json`;
+      a.download = `cursor-auto-accept-v2-${
+        new Date().toISOString().split("T")[0]
+      }.json`;
       a.click();
       URL.revokeObjectURL(url);
-      this.logToPanel('📥 分析資料已匯出', 'info');
+      this.logToPanel("📥 分析資料已匯出", "info");
     }
 
     clearAnalytics() {
-      if (confirm('確定要清除所有分析資料嗎？')) {
+      if (confirm("確定要清除所有分析資料嗎？")) {
         this.analytics.clearData();
         this.updateAnalyticsContent();
         this.updateMainFooter();
-        this.logToPanel('🗑️ 分析資料已清除', 'warning');
+        this.logToPanel("🗑️ 分析資料已清除", "warning");
       }
     }
 
     formatTimeDuration(milliseconds) {
-      if (!milliseconds || isNaN(milliseconds) || milliseconds <= 0) return '0秒';
+      if (!milliseconds || isNaN(milliseconds) || milliseconds <= 0)
+        return "0秒";
 
       const totalSeconds = Math.floor(milliseconds / 1000);
       const hours = Math.floor(totalSeconds / 3600);
@@ -3734,8 +3999,8 @@
       }
     }
 
-    logToPanel(message, type = 'info') {
-      const logContainer = this.controlPanel?.querySelector('.aa-log');
+    logToPanel(message, type = "info") {
+      const logContainer = this.controlPanel?.querySelector(".aa-log");
       if (!logContainer) return;
 
       const messageKey = `${type}:${message}`;
@@ -3744,7 +4009,7 @@
       this.loggedMessages.add(messageKey);
       setTimeout(() => this.loggedMessages.delete(messageKey), 2000);
 
-      const logEntry = document.createElement('div');
+      const logEntry = document.createElement("div");
       logEntry.className = `aa-log-entry ${type}`;
       logEntry.textContent = `${new Date().toLocaleTimeString()}: ${message}`;
 
@@ -3757,8 +4022,8 @@
     }
 
     log(message) {
-      console.log(`[CursorAutoAccept v2.1.1] ${message}`);
-      this.logToPanel(message, 'info');
+      console.log(`[CursorAutoAccept v2.1.2] ${message}`);
+      this.logToPanel(message, "info");
     }
 
     // 公共 API
@@ -3768,14 +4033,16 @@
     }
 
     enableOnly(types) {
-      Object.keys(this.config).forEach(key => {
-        if (key.startsWith('enable')) {
+      Object.keys(this.config).forEach((key) => {
+        if (key.startsWith("enable")) {
           this.config[key] = false;
         }
       });
 
-      types.forEach(type => {
-        const configKey = `enable${type.charAt(0).toUpperCase() + type.slice(1)}`;
+      types.forEach((type) => {
+        const configKey = `enable${
+          type.charAt(0).toUpperCase() + type.slice(1)
+        }`;
         if (this.config.hasOwnProperty(configKey)) {
           this.config[configKey] = true;
         }
@@ -3795,22 +4062,22 @@
     }
 
     showAnalytics() {
-      this.switchTab('analytics');
+      this.switchTab("analytics");
       this.showPanel();
     }
 
     enableDebug() {
       this.debugMode = true;
-      console.log('除錯模式已啟用');
+      console.log("除錯模式已啟用");
     }
 
     disableDebug() {
       this.debugMode = false;
-      console.log('除錯模式已停用');
+      console.log("除錯模式已停用");
     }
 
     debugSearch() {
-      console.log('=== 除錯搜尋開始 ===');
+      console.log("=== 除錯搜尋開始 ===");
 
       // 檢查按鈕查找
       const buttons = this.findAcceptButtons();
@@ -3827,35 +4094,37 @@
 
       // 檢查檔案信息提取
       if (buttons.length > 0) {
-        console.log('=== 檔案信息提取測試 ===');
+        console.log("=== 檔案信息提取測試 ===");
         const testButton = buttons[0];
         const fileInfo = this.extractFileInfo(testButton);
-        console.log('檔案信息提取結果:', fileInfo);
+        console.log("檔案信息提取結果:", fileInfo);
       }
 
       // 檢查分析數據
-      console.log('=== 目前分析數據 ===');
+      console.log("=== 目前分析數據 ===");
       const data = this.analytics.exportData();
-      console.log('總接受次數:', data.totalAccepts);
-      console.log('按鈕類型統計:', data.buttonTypes);
-      console.log('檔案數量:', Object.keys(data.files).length);
+      console.log("總接受次數:", data.totalAccepts);
+      console.log("按鈕類型統計:", data.buttonTypes);
+      console.log("檔案數量:", Object.keys(data.files).length);
 
       // 檢查 DOM 結構
-      console.log('=== DOM 結構檢查 ===');
-      const conversationsDiv = document.querySelector('div.conversations');
-      console.log('對話容器:', conversationsDiv ? '存在' : '不存在');
+      console.log("=== DOM 結構檢查 ===");
+      const conversationsDiv = document.querySelector("div.conversations");
+      console.log("對話容器:", conversationsDiv ? "存在" : "不存在");
 
       if (conversationsDiv) {
-        const messageBubbles = conversationsDiv.querySelectorAll('[data-message-index]');
-        console.log('訊息氣泡數量:', messageBubbles.length);
+        const messageBubbles = conversationsDiv.querySelectorAll(
+          "[data-message-index]"
+        );
+        console.log("訊息氣泡數量:", messageBubbles.length);
 
         const codeBlocks = conversationsDiv.querySelectorAll(
-          '.composer-code-block-container, .composer-tool-former-message, .composer-diff-block'
+          ".composer-code-block-container, .composer-tool-former-message, .composer-diff-block"
         );
-        console.log('程式碼區塊數量:', codeBlocks.length);
+        console.log("程式碼區塊數量:", codeBlocks.length);
       }
 
-      console.log('=== 除錯搜尋結束 ===');
+      console.log("=== 除錯搜尋結束 ===");
     }
   }
 
@@ -3867,15 +4136,19 @@
   window.stopAccept = () => CursorAutoAccept.stop();
   window.acceptStatus = () => CursorAutoAccept.status();
   window.debugAccept = () => CursorAutoAccept.debug.search();
-  window.enableOnly = types => CursorAutoAccept.enableOnly(types);
+  window.enableOnly = (types) => CursorAutoAccept.enableOnly(types);
   window.showAnalytics = () => CursorAutoAccept.analytics.show();
   window.exportAnalytics = () => CursorAutoAccept.analytics.export();
   window.clearAnalytics = () => CursorAutoAccept.analytics.clear();
 
-  console.log('✅ CursorAutoAccept v2.1.1 已載入！');
-  console.log('🎛️ 可用命令: startAccept(), stopAccept(), acceptStatus(), debugAccept()');
-  console.log('📊 分析命令: showAnalytics(), exportAnalytics(), clearAnalytics()');
-  console.log('🔄 新功能: Move to Background 自動點擊 - 在控制面板設定中啟用');
+  console.log("✅ CursorAutoAccept v2.1.2 已載入！");
+  console.log(
+    "🎛️ 可用命令: startAccept(), stopAccept(), acceptStatus(), debugAccept()"
+  );
+  console.log(
+    "📊 分析命令: showAnalytics(), exportAnalytics(), clearAnalytics()"
+  );
+  console.log("🔄 新功能: Move to Background 自動點擊 - 在控制面板設定中啟用");
 
   window.CursorAutoAccept = CursorAutoAccept;
 })();

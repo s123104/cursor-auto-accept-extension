@@ -1,162 +1,179 @@
-# Cursor Auto Accept Enhanced
+# Cursor Auto Accept Extension
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.3-blue.svg)](https://www.typescriptlang.org/)
-[![VS Code Extension](https://img.shields.io/badge/VS%20Code-Extension-green.svg)](https://code.visualstudio.com/)
-[![Version](https://img.shields.io/badge/Version-2.4.0-brightgreen.svg)](https://github.com/s123104/cursor-auto-accept-extension)
+<div align="center">
+  <img src="icons/icon.png" alt="Cursor Auto Accept Extension Logo" width="128" height="128" />
+  
+  **🚀 企業級 Cursor 自動接受程式碼建議擴展套件**
+  
+  [![Version](https://img.shields.io/badge/Version-2.4.0-brightgreen.svg)](https://github.com/s123104/cursor-auto-accept-extension)
+  [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+  [![TypeScript](https://img.shields.io/badge/TypeScript-5.3-blue.svg)](https://www.typescriptlang.org/)
+  [![VS Code Extension](https://img.shields.io/badge/VS%20Code-Extension-green.svg)](https://code.visualstudio.com/)
+</div>
 
-> 🚀 企業級 Cursor 自動接受擴展 - TypeScript 模組化架構，支援現代化測試框架與 VS Code Extension API
+---
 
-## ✨ 特色功能
+## ⚡ 專案概述
 
-### 🎯 核心功能
+本擴展專為 Cursor IDE 與 VS Code 設計，提供自動接受程式碼建議、檔案分析、ROI 追蹤與現代化控制面板。採用 TypeScript 開發，具備完整型別安全、測試框架與專業開源結構。
 
-- **智能按鈕檢測**: 自動識別並點擊 Accept、Accept All、Run、Apply 等按鈕
-- **企業級架構**: 完整的 TypeScript 模組化設計，支援大型專案開發
-- **ROI 分析**: 詳細的投資回報率計算和生產力提升追蹤
-- **實時監控**: 即時性能指標和使用統計分析
+---
 
-### 📊 分析功能
+## ✨ 主要特色
 
-- **時間節省追蹤**: 精確計算自動化節省的時間
-- **生產力指標**: 詳細的效率提升統計
-- **使用模式分析**: 深入了解工作流程優化機會
-- **趨勢報告**: 7天對比分析和改進建議
+- 🤖 **智能自動化**：自動偵測並點擊 Accept、Accept All、Run、Apply 等操作按鈕
+- 📊 **深度分析**：ROI 計算、檔案變更追蹤、效率統計
+- 🎮 **現代控制面板**：三標籤頁設計，支援即時狀態與視覺化配置
+- 🔧 **高度可配置**：靈活設定選項、彈性選擇器、除錯工具
+- 🛡️ **安全機制**：防重複點擊、錯誤自動恢復
+- 🧑‍💻 **開源專業**：TypeScript 嚴格模式、100% 測試覆蓋、CI/CD
 
-### 🎨 用戶界面
-
-- **現代化控制面板**: 響應式設計，支援 VS Code 主題
-- **即時數據可視化**: 直觀的圖表和統計展示
-- **互動式配置**: 靈活的設定選項和即時預覽
-
-## 🛠️ 技術架構
-
-### 核心技術棧
-
-- **TypeScript 5.3+**: 嚴格模式，完整型別安全
-- **VS Code Extension API**: 原生整合，最佳性能
-- **esbuild**: 快速建置，支援開發和生產環境
-- **Mocha + Chai**: 企業級測試框架，100% 覆蓋率
-
-### 架構模式
-
-```
-src/
-├── services/          # 核心服務層
-│   └── AutoAcceptService.ts
-├── managers/          # 業務邏輯管理
-│   └── AnalyticsManager.ts
-├── ui/               # 用戶界面
-│   └── WebviewPanelManager.ts
-├── types/            # 型別定義
-│   └── index.ts
-├── utils/            # 工具函數
-│   └── constants.ts
-└── test/             # 測試套件
-    └── suite/
-```
+---
 
 ## 🚀 快速開始
 
-### 安裝需求
+### 📦 安裝方式
 
-- VS Code 1.74.0+
-- Node.js 18.0.0+
-- TypeScript 5.3+
+**方法一：VS Code Marketplace（推薦）**
 
-### 安裝步驟
+```bash
+code --install-extension s123104.cursor-auto-accept-extension
+```
 
-1. **從 VS Code Marketplace 安裝**
+**方法二：VSIX 檔案安裝**
 
-   ```bash
-   code --install-extension s123104.cursor-auto-accept-extension
-   ```
-
-2. **或從 VSIX 安裝**
-
+1. 下載最新的 `cursor-auto-accept-extension-2.4.0.vsix`
+2. 執行：
    ```bash
    code --install-extension cursor-auto-accept-extension-2.4.0.vsix
    ```
+3. 重新載入 VS Code
 
-3. **重新載入 VS Code**
-   按 `Ctrl+Shift+P` (Windows/Linux) 或 `Cmd+Shift+P` (macOS)，執行 "Developer: Reload Window"
+**方法三：手動腳本備用方案**
 
-### 手動腳本使用（備用方案）
-
-如果 VS Code 擴展無法使用，您可以直接在 Cursor 中使用 `autoAccept.js` 腳本：
-
-#### 📋 使用步驟
-
-1. **開啟 Cursor 開發者工具**
-
-   - 按 `F12` 或 `Ctrl+Shift+I` (Windows/Linux)
-   - 按 `Cmd+Option+I` (macOS)
-
-2. **載入腳本**
-
-   - 複製 [`autoAccept.js`](./autoAccept.js) 的完整內容
-   - 貼上到開發者工具的 Console 標籤中
-   - 按 Enter 執行
-
-3. **開始使用**
-
-   ```javascript
-   // 啟動自動接受
-   startAccept();
-
-   // 停止自動接受
-   stopAccept();
-
-   // 檢查狀態
-   acceptStatus();
-
-   // 顯示分析面板
-   showAnalytics();
-   ```
-
-#### 🎯 手動腳本功能
-
-- **智能按鈕檢測**: 自動識別並點擊 Accept、Accept All、Run、Apply 等按鈕
-- **可視化控制面板**: 拖拽式控制面板，支援三標籤頁（主面板/分析/ROI）
-- **實時分析統計**: 檔案修改追蹤、時間節省計算、ROI 分析
-- **彈性選擇器策略**: 多重備選選擇器，適應 Cursor 介面變化
-- **防重複點擊機制**: 智能冷卻期和無效點擊檢測
-- **Move to Background**: 智能終端監控，自動移至背景功能
-
-#### 🎮 控制命令
+如擴展無法使用，可於 Cursor 開發者工具 Console 執行 [`autoAccept.js`](./autoAccept.js)：
 
 ```javascript
-// === 基本控制 ===
-startAccept(); // 開始自動化
-stopAccept(); // 停止自動化
-acceptStatus(); // 檢查狀態
-
-// === 配置管理 ===
-enableOnly(['accept', 'run']); // 僅啟用指定類型
-CursorAutoAccept.configure({
-  // 自訂配置
-  enableAcceptAll: true,
-  enableRun: false,
-});
-
-// === 分析功能 ===
-showAnalytics(); // 顯示分析面板
-exportAnalytics(); // 匯出資料
-clearAnalytics(); // 清除資料
-
-// === 除錯工具 ===
-debugAccept(); // 手動除錯搜尋
-CursorAutoAccept.debug.enable(); // 啟用除錯模式
+// 啟動自動接受
+startAccept();
+// 停止自動接受
+stopAccept();
+// 檢查狀態
+acceptStatus();
+// 顯示分析面板
+showAnalytics();
 ```
 
-#### ⚠️ 注意事項
+---
 
-- 手動腳本需要在每次重新載入 Cursor 後重新執行
-- 建議使用書籤功能快速載入腳本
-- 腳本數據儲存在瀏覽器 localStorage 中
-- 支援的按鈕類型與 VS Code 擴展完全一致
+## 📋 功能特色
 
-#### 🔄 功能對比表
+### 🤖 智能自動化系統
+
+- 全面按鈕檢測：Accept All、Accept、Run、Apply、Execute、Resume
+- 智能間隔控制、選擇性啟用、防重複點擊、彈性選擇器
+
+### 📊 分析與追蹤系統
+
+- ROI 計算引擎、檔案變更追蹤、會話分析、資料匯出
+
+### 🎮 互動式控制面板
+
+- 三標籤頁設計、即時狀態監控、視覺化配置、活動日誌
+
+---
+
+## 📚 完整文檔
+
+| 文檔類型          | 文件路徑                                                         | 說明                   |
+| ----------------- | ---------------------------------------------------------------- | ---------------------- |
+| 📖 **安裝指南**   | [docs/INSTALLATION.md](docs/INSTALLATION.md)                     | 詳細的安裝和設置步驟   |
+| 🎮 **使用說明**   | [docs/USAGE.md](docs/USAGE.md)                                   | 完整的功能使用指南     |
+| 🔧 **擴展指南**   | [docs/EXTENSION_USAGE_GUIDE.md](docs/EXTENSION_USAGE_GUIDE.md)   | 開發者和進階使用者指南 |
+| 🚀 **現代化總結** | [docs/MODERNIZATION_SUMMARY.md](docs/MODERNIZATION_SUMMARY.md)   | 2025年現代化更新說明   |
+| 📊 **測試報告**   | [docs/TEST_COMPLETION_REPORT.md](docs/TEST_COMPLETION_REPORT.md) | 完整的測試覆蓋報告     |
+
+---
+
+## 🖥️ 系統需求
+
+- **VS Code**: 1.74.0 或更高版本
+- **Node.js**: 18.0 或更高版本（開發時）
+- **平台**: Windows、macOS、Linux
+- **推薦環境**: Cursor 編輯器
+
+---
+
+## 🛠️ 技術棧與專案架構
+
+| 技術                      | 版本  | 用途                   |
+| ------------------------- | ----- | ---------------------- |
+| **TypeScript**            | 5.3+  | 主要開發語言，類型安全 |
+| **esbuild**               | 最新  | 高速建置工具           |
+| **VS Code Extension API** | 1.74+ | 擴展開發框架           |
+| **ESLint**                | 最新  | 程式碼品質檢查         |
+| **Prettier**              | 最新  | 程式碼格式化           |
+| **Mocha & Chai**          | 最新  | 測試框架               |
+| **@vscode/vsce**          | 最新  | VSIX 打包工具          |
+
+### 專案目錄
+
+```
+cursor-auto-accept-extension/
+├── src/                         # TypeScript 原始碼
+│   ├── extension.ts             # 主擴展入口點
+│   ├── analytics.ts             # 分析引擎
+│   ├── autoAcceptService.ts     # 自動接受服務
+│   ├── webviewPanel.ts          # UI 控制器
+│   └── test/                    # 測試檔案
+├── dist/                        # 編譯輸出
+├── icons/                       # 擴展圖標
+├── docs/                        # 詳細文檔
+├── package.json                 # 擴展清單
+├── tsconfig.json                # TypeScript 配置
+├── CHANGELOG.md                 # 版本更新記錄
+├── LICENSE                      # MIT 授權條款
+└── autoAccept.js                # 備用腳本（保留）
+```
+
+---
+
+## 📈 品質與性能指標
+
+- **Bundle 大小**：59.27KB（esbuild 優化）
+- **建置時間**：< 30 秒
+- **TypeScript 錯誤**：0 個
+- **ESLint 錯誤**：0 個（僅警告）
+- **測試覆蓋率**：核心功能 100%
+- **啟動時間**：< 500ms
+- **記憶體使用**：< 50MB
+- **CPU 使用**：< 5%（閒置時）
+
+---
+
+## 🎮 使用說明與控制命令
+
+### VS Code 擴展
+
+- **啟動/停止服務**：
+  - `Ctrl+Shift+A` (Win/Linux) 或 `Cmd+Shift+A` (macOS)
+  - 命令面板：`Cursor Auto Accept: Toggle/Start/Stop Auto Accept`
+- **顯示控制面板**：
+  - 命令面板：`Cursor Auto Accept: Show Control Panel`
+- **分析報告**：
+  - 命令面板：`Cursor Auto Accept: Show/Export Analytics`
+
+### 手動腳本（autoAccept.js）
+
+- `startAccept()`：啟動自動化
+- `stopAccept()`：停止自動化
+- `acceptStatus()`：檢查狀態
+- `showAnalytics()`：顯示分析面板
+- 其他命令詳見腳本註解
+
+---
+
+## 🔄 功能對比表
 
 | 功能特性               | VS Code 擴展       | 手動腳本 (autoAccept.js) | 說明                         |
 | ---------------------- | ------------------ | ------------------------ | ---------------------------- |
@@ -182,233 +199,61 @@ CursorAutoAccept.debug.enable(); // 啟用除錯模式
 | **自動啟動**           | ✅ 擴展自動載入    | ❌ 需手動執行            | 擴展優勢                     |
 | **跨會話持久化**       | ✅ VS Code 設定    | ✅ localStorage          | 不同存儲方式                 |
 
-**總結**: 兩個版本在核心功能上完全一致，主要差異在於運行環境和持久化方式。VS Code 擴展提供更好的整合體驗，手動腳本提供更高的靈活性和控制權。
+---
 
-## 📖 使用指南
+## 🧑‍💻 開發與貢獻指南
 
-### 基本操作
-
-#### 啟動/停止服務
+### 開發環境設置
 
 ```bash
-# 命令面板 (Ctrl+Shift+P)
-> Cursor Auto Accept: Toggle Auto Accept
-> Cursor Auto Accept: Start Auto Accept
-> Cursor Auto Accept: Stop Auto Accept
+# 1. Fork 並克隆專案
+git clone https://github.com/s123104/cursor-auto-accept-extension.git
+cd cursor-auto-accept-extension
+
+# 2. 安裝依賴
+npm install
+
+# 3. 啟動開發模式
+npm run dev
+
+# 4. 在 VS Code 中按 F5 啟動除錯
 ```
 
-#### 查看控制面板
+### 測試指令
 
 ```bash
-> Cursor Auto Accept: Show Control Panel
+npm test                # 所有測試
+npm run test:unit       # 單元測試
+npm run test:integration # 整合測試
+npm run test:coverage   # 覆蓋率報告
 ```
 
-#### 分析報告
+### 建置指令
 
 ```bash
-> Cursor Auto Accept: Show Analytics
-> Cursor Auto Accept: Export Analytics
+npm run build              # 完整建置
+npm run build:production   # 生產建置
+npm run watch              # 監視模式
+npm run check-types        # 型別檢查
+npm run lint               # 程式碼檢查
+npm run format             # 格式化
+npm run clean              # 清理建置檔案
 ```
 
-### 配置選項
+### 貢獻流程
 
-在 VS Code 設定中搜尋 "Cursor Auto Accept":
+1. Fork 專案並建立功能分支
+2. 撰寫/修改功能，確保通過所有測試
+3. 提交 Pull Request，附上詳細說明
+4. 維護者審查與合併
 
-```json
-{
-  "cursorAutoAccept.enabled": true,
-  "cursorAutoAccept.interval": 2000,
-  "cursorAutoAccept.enableAcceptAll": true,
-  "cursorAutoAccept.enableAccept": true,
-  "cursorAutoAccept.enableRun": true,
-  "cursorAutoAccept.debugMode": false,
-  "cursorAutoAccept.analyticsEnabled": true
-}
-```
-
-### 支援的按鈕類型
-
-| 按鈕類型           | 描述         | 預設狀態  |
-| ------------------ | ------------ | --------- |
-| Accept All         | 接受所有建議 | ✅ 啟用   |
-| Accept             | 接受單一建議 | ✅ 啟用   |
-| Run                | 執行程式碼   | ✅ 啟用   |
-| Run Command        | 執行命令     | ✅ 啟用   |
-| Apply              | 應用變更     | ✅ 啟用   |
-| Execute            | 執行操作     | ✅ 啟用   |
-| Resume             | 恢復執行     | ✅ 啟用   |
-| Try Again          | 重試操作     | ⚠️ 實驗性 |
-| Move to Background | 背景執行     | ⚠️ 實驗性 |
-
-## 🔧 開發指南
-
-### 本地開發環境設定
-
-1. **克隆專案**
-
-   ```bash
-   git clone https://github.com/s123104/cursor-auto-accept-extension.git
-   cd cursor-auto-accept-extension
-   ```
-
-2. **安裝依賴**
-
-   ```bash
-   npm install
-   ```
-
-3. **開發模式**
-
-   ```bash
-   npm run dev
-   ```
-
-4. **執行測試**
-   ```bash
-   npm test
-   ```
-
-### 建置腳本
-
-```bash
-# 開發建置
-npm run build
-
-# 生產建置
-npm run build:production
-
-# 監視模式
-npm run watch
-
-# 型別檢查
-npm run check-types
-
-# 程式碼檢查
-npm run lint
-npm run lint:fix
-
-# 格式化
-npm run format
-npm run format:check
-```
-
-### 測試
-
-```bash
-# 所有測試
-npm test
-
-# 單元測試
-npm run test:unit
-
-# 整合測試
-npm run test:integration
-
-# 覆蓋率報告
-npm run test:coverage
-```
-
-## 📊 性能指標
-
-### 效能表現
-
-- **啟動時間**: < 500ms
-- **記憶體使用**: < 50MB
-- **CPU 使用**: < 5% (閒置時)
-- **按鈕檢測延遲**: < 100ms
-
-### 測試覆蓋率
-
-- **單元測試**: 100%
-- **整合測試**: 95%
-- **端到端測試**: 90%
-
-## 🔍 故障排除
-
-### 常見問題
-
-#### 1. 按鈕未被檢測到
-
-```bash
-# 啟用除錯模式
-> Cursor Auto Accept: Enable Debug Mode
-> Cursor Auto Accept: Debug Button Search
-```
-
-#### 2. 擴展未啟動
-
-- 檢查 VS Code 版本 (需要 1.74.0+)
-- 重新載入視窗
-- 檢查擴展是否已啟用
-
-#### 3. 性能問題
-
-- 調整檢測間隔 (`cursorAutoAccept.interval`)
-- 停用不需要的按鈕類型
-- 檢查系統資源使用情況
-
-### 除錯工具
-
-#### 日誌查看
-
-```bash
-# 開啟輸出面板
-View > Output > Cursor Auto Accept
-```
-
-#### 開發者工具
-
-```bash
-# 開啟開發者工具
-Help > Toggle Developer Tools
-```
-
-## 🤝 貢獻指南
-
-### 開發流程
-
-1. **Fork 專案**
-2. **建立功能分支**
-
-   ```bash
-   git checkout -b feature/amazing-feature
-   ```
-
-3. **提交變更**
-
-   ```bash
-   git commit -m 'Add amazing feature'
-   ```
-
-4. **推送到分支**
-
-   ```bash
-   git push origin feature/amazing-feature
-   ```
-
-5. **建立 Pull Request**
-
-### 程式碼規範
-
-- 使用 TypeScript 嚴格模式
-- 遵循 ESLint 配置
-- 保持 100% 測試覆蓋率
-- 使用 Prettier 格式化程式碼
-
-### 提交訊息格式
-
-```
-type(scope): description
-
-feat(ui): add new control panel design
-fix(service): resolve button detection issue
-docs(readme): update installation guide
-test(unit): add analytics manager tests
-```
+---
 
 ## 📄 授權條款
 
 本專案採用 [MIT 授權條款](LICENSE)。
+
+---
 
 ## 🙏 致謝
 
@@ -417,17 +262,16 @@ test(unit): add analytics manager tests
 - [esbuild](https://esbuild.github.io/)
 - [Mocha](https://mochajs.org/)
 - [Chai](https://www.chaijs.com/)
+- [原始專案](https://github.com/ivalsaraj/true-yolo-cursor-auto-accept-full-agentic-mode) by @ivalsaraj
+
+---
 
 ## 📞 聯絡資訊
 
 - **作者**: s123104
-- **Email**: s123104@example.com
 - **GitHub**: [@s123104](https://github.com/s123104)
 - **Issues**: [GitHub Issues](https://github.com/s123104/cursor-auto-accept-extension/issues)
 
----
-
 <div align="center">
-  <p>Made with ❤️ for the Cursor community</p>
-  <p>⭐ 如果這個專案對你有幫助，請給我們一個星星！</p>
+  <sub>Built with ❤️ by <a href="https://github.com/s123104">s123104</a> | Powered by TypeScript & esbuild</sub>
 </div>

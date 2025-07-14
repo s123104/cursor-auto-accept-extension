@@ -11,7 +11,7 @@ import {
   WebviewMessage,
   LogLevel,
 } from '../types';
-import { WEBVIEW_TYPES, COMMANDS } from '../utils/constants';
+import { WEBVIEW_TYPES, COMMANDS, VERSION } from '../utils/constants';
 
 /**
  * WebviewPanelManager - VS Code Webview 面板管理器
@@ -327,7 +327,7 @@ export class WebviewPanelManager {
 </head>
 <body>
     <div class="control-panel">
-        <h1>🎯 Cursor Auto Accept 控制面板</h1>
+        <h1 title="v${VERSION}">🎯 Cursor Auto Accept 控制面板</h1>
         
         <div class="section">
             <h2>📊 即時統計</h2>

@@ -249,7 +249,7 @@ export const WEBVIEW_TYPES = {
 /**
  * 版本資訊
  */
-export const VERSION = '2.2.0';
+export const VERSION = '2.4.0';
 export const EXTENSION_NAME = 'cursor-auto-accept';
 export const EXTENSION_DISPLAY_NAME = 'Cursor Auto Accept';
 export const EXTENSION_DESCRIPTION = 'Automatically accept code suggestions in Cursor IDE';

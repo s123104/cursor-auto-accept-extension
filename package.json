@@ -250,7 +250,7 @@
     "nyc": "^15.1.0",
     "prettier": "^3.1.1",
     "rimraf": "^5.0.5",
-    "semantic-release": "^22.0.12",
+    "semantic-release": "^24.2.7",
     "sinon": "^17.0.1",
     "tsx": "^4.20.3",
     "typescript": "^5.3.3"
